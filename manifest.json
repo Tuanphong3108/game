@@ -1,0 +1,15 @@
+{
+  "name": "Game Hóa Học",
+  "short_name": "Game Hóa Học",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3367d6",
+  "icons": [
+    {
+      "src": "favicon.jpg",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
