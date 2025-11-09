@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Chosen One: Image Player & Cyan Squares</title>
+    <style>
+        /* Setup Fullscreen và Nền Trắng */
+        html, body {
+            overflow: hidden;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            width: 100vw;
+            background-color: #f0f0f0; 
+            font-family: 'Consolas', monospace;
+            color: #333;
+        }
+        canvas {
+            display: block;
+            background-color: #ffffff;
+        }
+    </style>
+</head>
+<body>
+    
+    <!-- Thẻ Audio cho nhạc nền (Ẩn, Loop) -->
+    <audio id="gameMusic" loop>
+        <source src="https://tuanphong3108.github.io/newtab/Wanted Music.m4a" type="audio/mp4">
+        Your browser does not support the audio element.
+    </audio>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const gameMusic = document.getElementById('gameMusic');
+        
+        // Kích thước game CHỐT LẠI ngay lúc tải trang (Fullscreen)
+        let GAME_WIDTH = window.innerWidth;
+        let GAME_HEIGHT = window.innerHeight;
+        canvas.width = GAME_WIDTH;
+        canvas.height = GAME_HEIGHT;
+
+        let gameState = 'start'; // Trạng thái: 'start', 'running', 'gameOver'
+        let score = 0;
+        let highScore = 0;
+        
+        const FPS = 60;
+        const frameInterval = 1000 / FPS;
+        let lastTime = 0;
+
+        // Tải hình ảnh The Chosen One
+        const playerImage = new Image();
+        playerImage.src = 'https://tuanphong3108.github.io/newtab/The_Chosen_One.png';
+        let playerImageLoaded = false;
+
+        // Tải hình ảnh Emoji Blue Sad
+        const sadEmojiImage = new Image();
+        sadEmojiImage.src = 'https://tuanphong3108.github.io/newtab/Blue_sad.png';
+        let sadEmojiImageLoaded = false;
+        const SAD_EMOJI_SIZE = 40; 
+
+        playerImage.onload = () => {
+            playerImageLoaded = true;
+            // GIẢM KÍCH THƯỚC XUỐNG 10 LẦN và giữ tỷ lệ
+            player.width = playerImage.width / 10; 
+            player.height = playerImage.height / 10;
+            
+            player.x = GAME_WIDTH / 2;
+            player.y = GAME_HEIGHT / 2;
+        };
+        playerImage.onerror = () => { console.error("Lỗi: Không tải được The Chosen One."); };
+
+        sadEmojiImage.onload = () => { sadEmojiImageLoaded = true; };
+        sadEmojiImage.onerror = () => { console.error("Lỗi: Không tải được Emoji."); };
+
+
+        // 2. Đối tượng Người chơi
+        const player = {
+            x: GAME_WIDTH / 2,
+            y: GAME_HEIGHT / 2,
+            width: 30, // Kích thước fallback
+            height: 30, // Kích thước fallback
+            speed: 6, 
+            dx: 0,
+            dy: 0
+        };
+
+        // 3. Đối tượng Đạn & Particles
+        let bullets = [];
+        let particles = [];
+        let bulletSpeed = 3;
+        let spawnRate = 40;
+        let frameCount = 0;
+        const PARTICLE_SIZE_FACTOR = 0.2;
+        const PARTICLE_LIFETIME = 60;
+        const PARTICLE_COUNT = 5;
+
+        function createBullet() {
+            let side = Math.floor(Math.random() * 4);
+            let x, y, angle;
+            const bulletSize = 15;
+            const targetX = player.x + (player.dx * 15);
+            const targetY = player.y + (player.dy * 15);
+            
+            switch (side) {
+                case 0: x = Math.random() * GAME_WIDTH; y = -bulletSize; break;
+                case 1: x = Math.random() * GAME_WIDTH; y = GAME_HEIGHT + bulletSize; break;
+                case 2: x = -bulletSize; y = Math.random() * GAME_HEIGHT; break;
+                case 3: x = GAME_WIDTH + bulletSize; y = Math.random() * GAME_HEIGHT; break;
+            }
+            
+            angle = Math.atan2(targetY - y, targetX - x);
+
+            bullets.push({
+                x: x, y: y, size: bulletSize, color: '#00ffff', 
+                vx: Math.cos(angle) * bulletSpeed,
+                vy: Math.sin(angle) * bulletSpeed,
+                rotation: Math.random() * Math.PI * 2,
+                rotationSpeed: (Math.random() - 0.5) * 0.1
+            });
+        }
+
+        function createParticles(bullet) {
+            for (let i = 0; i < PARTICLE_COUNT; i++) {
+                particles.push({
+                    x: bullet.x, y: bullet.y, size: bullet.size * PARTICLE_SIZE_FACTOR, color: bullet.color,
+                    vx: (Math.random() - 0.5) * 3, vy: (Math.random() - 0.5) * 3,
+                    lifetime: PARTICLE_LIFETIME, rotation: Math.random() * Math.PI * 2,
+                    rotationSpeed: (Math.random() - 0.5) * 0.2
+                });
+            }
+        }
+        
+        // 4. Input Handling (WASD)
+        let keys = {};
+
+        document.addEventListener('keydown', (e) => {
+            keys[e.code] = true;
+            if(['Space', 'KeyW', 'KeyA', 'KeyS', 'KeyD'].includes(e.code)) {
+                e.preventDefault();
+            }
+            // Chỉ cho phép Space để TÁI KHỞI ĐỘNG khi Game Over
+            if (gameState === 'gameOver' && e.code === 'Space') {
+                e.preventDefault();
+                resetGame();
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            keys[e.code] = false;
+        });
+
+        // Xử lý click cho nút START MISSION
+        canvas.addEventListener('click', (e) => {
+            if (gameState === 'start') {
+                // Kiểm tra xem click có trúng nút START không (vị trí cứng)
+                const startButtonWidth = 200;
+                const startButtonHeight = 60;
+                const startX = GAME_WIDTH / 2 - startButtonWidth / 2;
+                const startY = GAME_HEIGHT / 2 + 50 - startButtonHeight / 2;
+
+                const rect = canvas.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+
+                if (mouseX >= startX && mouseX <= startX + startButtonWidth &&
+                    mouseY >= startY && mouseY <= startY + startButtonHeight) {
+                    
+                    startGame();
+                }
+            }
+        });
+
+        function updatePlayerMovement() {
+            player.dx = 0;
+            player.dy = 0;
+
+            if (keys['KeyW']) { player.dy = -player.speed; }
+            if (keys['KeyS']) { player.dy = player.speed; }
+            if (keys['KeyA']) { player.dx = -player.speed; }
+            if (keys['KeyD']) { player.dx = player.speed; }
+
+            if (player.dx !== 0 && player.dy !== 0) {
+                const factor = player.speed / Math.sqrt(player.dx * player.dx + player.dy * player.dy);
+                player.dx *= factor;
+                player.dy *= factor;
+            }
+
+            player.x += player.dx;
+            player.y += player.dy;
+
+            // Giới hạn trong canvas
+            player.x = Math.max(player.width / 2, Math.min(player.x, GAME_WIDTH - player.width / 2));
+            player.y = Math.max(player.height / 2, Math.min(player.y, GAME_HEIGHT - player.height / 2));
+        }
+
+        // 5. Hàm vẽ (DRAWING FUNCTIONS)
+        
+        function drawPlayer() {
+            if (playerImageLoaded) {
+                ctx.drawImage(playerImage, 
+                              player.x - player.width / 2, 
+                              player.y - player.height / 2, 
+                              player.width, player.height);
+            } else {
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(player.x - player.width / 2, player.y - player.height / 2, player.width, player.height);
+            }
+        }
+
+        function drawBullet(bullet) {
+            ctx.save();
+            ctx.translate(bullet.x, bullet.y);
+            ctx.rotate(bullet.rotation);
+            ctx.fillStyle = bullet.color;
+            ctx.fillRect(-bullet.size / 2, -bullet.size / 2, bullet.size, bullet.size);
+            ctx.restore();
+        }
+
+        function drawParticle(particle) {
+            ctx.save();
+            ctx.translate(particle.x, particle.y);
+            ctx.rotate(particle.rotation);
+            ctx.fillStyle = particle.color;
+            ctx.globalAlpha = particle.lifetime / PARTICLE_LIFETIME;
+            ctx.fillRect(-particle.size / 2, -particle.size / 2, particle.size, particle.size);
+            ctx.restore();
+            ctx.globalAlpha = 1;
+        }
+
+        function drawStartScreen() {
+            ctx.fillStyle = '#333';
+            ctx.font = 'bold 80px "Inter", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('THE CHOSEN ONE', GAME_WIDTH / 2, GAME_HEIGHT / 2 - 80);
+
+            // Vẽ The Chosen One ở màn hình Start (vị trí cứng)
+            if (playerImageLoaded) {
+                 // Dùng kích thước nhỏ hơn một chút cho màn hình start
+                const imgWidth = player.width * 2; 
+                const imgHeight = player.height * 2;
+                ctx.drawImage(playerImage, 
+                              GAME_WIDTH / 2 - imgWidth / 2, 
+                              GAME_HEIGHT / 2 - imgHeight / 2 - 20, 
+                              imgWidth, imgHeight);
+            }
+
+
+            // Vẽ nút START MISSION
+            const buttonWidth = 200;
+            const buttonHeight = 60;
+            const startX = GAME_WIDTH / 2 - buttonWidth / 2;
+            const startY = GAME_HEIGHT / 2 + 50 - buttonHeight / 2;
+
+            // Nút background (Cyan)
+            ctx.fillStyle = '#00ffff'; 
+            ctx.shadowColor = '#00ffff';
+            ctx.shadowBlur = 15;
+            ctx.fillRect(startX, startY, buttonWidth, buttonHeight);
+            ctx.shadowBlur = 0; // Tắt shadow
+
+            // Text nút
+            ctx.fillStyle = '#000000'; 
+            ctx.font = 'bold 24px "Inter", sans-serif';
+            ctx.fillText('START MISSION', GAME_WIDTH / 2, GAME_HEIGHT / 2 + 50 + 8);
+
+            ctx.fillStyle = '#333';
+            ctx.font = '20px Consolas, monospace';
+            ctx.fillText('Né đạn bằng WASD', GAME_WIDTH / 2, GAME_HEIGHT / 2 + 150);
+        }
+        
+        function drawScoreAndStatus() {
+            ctx.fillStyle = '#333';
+            ctx.font = 'bold 28px Consolas, monospace';
+            
+            ctx.textAlign = 'left';
+            ctx.fillText(`SCORE: ${score}`, 30, 40);
+
+            ctx.textAlign = 'right';
+            ctx.fillText(`HIGH SCORE: ${highScore}`, GAME_WIDTH - 30, 40);
+            
+            if (gameState === 'gameOver') {
+                ctx.fillStyle = '#ff3333';
+                ctx.font = 'bold 72px "Inter", sans-serif';
+                ctx.textAlign = 'center';
+
+                const missionFailedText = 'MISSION FAILED!';
+                const textX = GAME_WIDTH / 2;
+                const textY = GAME_HEIGHT / 2 - 50;
+                
+                // Vẽ chữ
+                ctx.fillText(missionFailedText, textX, textY);
+                
+                // Vẽ Emoji Blue Sad
+                if (sadEmojiImageLoaded) {
+                    ctx.save();
+                    // Đặt lại font để đo chiều rộng chính xác
+                    ctx.font = 'bold 72px "Inter", sans-serif'; 
+                    const textMetrics = ctx.measureText(missionFailedText);
+                    const textWidth = textMetrics.width;
+                    
+                    // Vị trí X của emoji: bên phải chữ, cách 10px
+                    const emojiX = textX + textWidth / 2 + 10; 
+                    const emojiY = textY - SAD_EMOJI_SIZE * 0.7; // Căn chỉnh Y để emoji nằm ngay trên đường base text
+                    
+                    ctx.drawImage(sadEmojiImage, emojiX, emojiY, SAD_EMOJI_SIZE, SAD_EMOJI_SIZE);
+                    ctx.restore();
+                }
+                
+                ctx.font = 'bold 36px "Inter", sans-serif';
+                ctx.fillText(`Điểm của bạn: ${score}`, GAME_WIDTH / 2, GAME_HEIGHT / 2 + 10);
+
+                ctx.font = '24px "Inter", sans-serif';
+                ctx.fillText('Nhấn SPACE để TÁI KHỞI ĐỘNG...', GAME_WIDTH / 2, GAME_HEIGHT / 2 + 70);
+            }
+        }
+
+
+        // 6. Logic Game chính
+        
+        function updateBullets() {
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                let bullet = bullets[i];
+                
+                bullet.x += bullet.vx;
+                bullet.y += bullet.vy;
+                bullet.rotation += bullet.rotationSpeed;
+
+                // Kiểm tra va chạm (AABB)
+                const playerLeft = player.x - player.width / 2;
+                const playerRight = player.x + player.width / 2;
+                const playerTop = player.y - player.height / 2;
+                const playerBottom = player.y + player.height / 2;
+
+                const bulletLeft = bullet.x - bullet.size / 2;
+                const bulletRight = bullet.x + bullet.size / 2;
+                const bulletTop = bullet.y - bullet.size / 2;
+                const bulletBottom = bullet.y + bullet.size / 2;
+
+                if (playerLeft < bulletRight && playerRight > bulletLeft &&
+                    playerTop < bulletBottom && playerBottom > bulletTop) {
+                    
+                    gameState = 'gameOver';
+                    gameMusic.pause(); // Tắt nhạc khi thua
+                    if (score > highScore) {
+                        highScore = score;
+                    }
+                    return; 
+                }
+
+                if (bullet.x < -bullet.size * 2 || bullet.x > GAME_WIDTH + bullet.size * 2 || 
+                    bullet.y < -bullet.size * 2 || bullet.y > GAME_HEIGHT + bullet.size * 2) {
+                    
+                    createParticles(bullet);
+                    bullets.splice(i, 1);
+                }
+            }
+        }
+
+        function updateParticles() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.rotation += p.rotationSpeed;
+                p.lifetime--;
+
+                if (p.lifetime <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+        }
+        
+        function handleBulletSpawning() {
+            if (frameCount % spawnRate === 0) {
+                createBullet();
+            }
+            
+            if (frameCount % (FPS * 5) === 0) {
+                 if (spawnRate > 10) spawnRate -= 2; 
+                 bulletSpeed += 0.2; 
+                 player.speed += 0.1;
+            }
+        }
+
+        // Bắt đầu game khi nhấn nút START MISSION
+        function startGame() {
+            gameState = 'running';
+            gameMusic.currentTime = 0; // Bắt đầu từ đầu
+            gameMusic.play().catch(e => console.error("Lỗi phát nhạc:", e)); // Bắt lỗi nếu trình duyệt chặn
+        }
+        
+        function resetGame() {
+            player.x = GAME_WIDTH / 2;
+            player.y = GAME_HEIGHT / 2;
+            bullets = [];
+            particles = [];
+            score = 0;
+            bulletSpeed = 3;
+            spawnRate = 40;
+            player.speed = 6;
+            frameCount = 0;
+            keys = {}; 
+            gameState = 'running'; // Chuyển thẳng vào running sau khi reset
+            gameMusic.currentTime = 0;
+            gameMusic.play().catch(e => console.error("Lỗi phát nhạc:", e));
+            lastTime = performance.now(); 
+            gameLoop(lastTime);
+        }
+        
+        function gameLoop(currentTime) {
+            
+            const deltaTime = currentTime - lastTime;
+            
+            if (deltaTime >= frameInterval) {
+                lastTime = currentTime - (deltaTime % frameInterval);
+
+                ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+                if (gameState === 'start') {
+                    drawStartScreen();
+                } else if (gameState === 'running') {
+                    updatePlayerMovement();
+                    updateBullets();
+                    updateParticles();
+                    handleBulletSpawning();
+                    
+                    frameCount++;
+                    score = Math.floor(frameCount / FPS); 
+                } else if (gameState === 'gameOver') {
+                    // Khi Game Over, vẫn vẽ đạn và player lần cuối
+                }
+                
+                // Vẽ các đối tượng chỉ khi không phải màn hình Start
+                if (gameState !== 'start') {
+                    particles.forEach(drawParticle);
+                    bullets.forEach(drawBullet);
+                    drawPlayer();
+                    drawScoreAndStatus();
+                }
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Khởi động game
+        window.onload = () => {
+            // Khi tải xong, game bắt đầu ở màn hình start
+            gameState = 'start';
+            gameLoop(performance.now());
+        };
+        
+    </script>
+</body>
+</html>
