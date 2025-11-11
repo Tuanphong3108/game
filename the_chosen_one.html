@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Chosen One: Image Player & Cyan Squares</title>
+    <title>The Chosen One Game</title>
     <style>
         /* Setup Fullscreen và Nền Trắng */
         html, body {
@@ -20,35 +20,136 @@
         }
         canvas {
             display: block;
-            /* Nền canvas giờ sẽ là ảnh nên không cần màu nền mặc định */
-            /* background-color: #ffffff; */
         }
     </style>
 </head>
 <body>
     
-    <!-- Thẻ Audio cho nhạc nền (Ẩn, Loop) --><audio id="gameMusic" loop>
+    <!-- Thẻ Audio cho nhạc nền (Ẩn, Loop) -->
+    <audio id="gameMusic" loop>
         <source src="https://tuanphong3108.github.io/newtab/Wanted Music.m4a" type="audio/mp4">
-        Your browser does not support the audio element.
+        Your browser does-not support the audio element.
     </audio>
 
     <canvas id="gameCanvas"></canvas>
 
-    <script>
+    <script type="module">
+        // === FIREBASE IMPORTS (MANDATORY FOR PERSISTENCE) ===
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        // Bật debug log cho Firestore
+        setLogLevel('Debug');
+        
+        let db;
+        let auth;
+        let userId = 'anon_user'; 
+        let isFirebaseReady = false; 
+
+        const HIGH_SCORE_COLLECTION = 'high_score_data';
+        const HIGH_SCORE_DOC_ID = 'user_stats';
+
+        // Lấy tham chiếu đến tài liệu High Score của người dùng hiện tại
+        function getHighScoreDocRef() {
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            // Lưu trữ dữ liệu riêng tư: /artifacts/{appId}/users/{userId}/{collection}/{document}
+            return doc(db, 'artifacts', appId, 'users', userId, HIGH_SCORE_COLLECTION, HIGH_SCORE_DOC_ID);
+        }
+
+        // Hàm lưu High Score mới lên Firestore
+        async function saveHighScore(newScore) {
+             // Chỉ lưu nếu Firebase đã sẵn sàng và điểm mới cao hơn điểm cũ
+             if (!isFirebaseReady || newScore <= highScore) return;
+
+             try {
+                 highScore = newScore; // Cập nhật ngay biến local
+                 const docRef = getHighScoreDocRef();
+                 await setDoc(docRef, { score: newScore });
+                 console.log("Mốc kỷ lục mới đã được ghi nhận:", newScore);
+             } catch (error) {
+                 console.error("Lỗi khi lưu High Score:", error);
+             }
+        }
+
+        // Lắng nghe High Score từ Firestore (Real-time)
+        function listenForHighScore() {
+            if (!isFirebaseReady) return;
+            
+            const docRef = getHighScoreDocRef();
+            onSnapshot(docRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    highScore = data.score || 0;
+                    console.log("High Score đã tải từ Firestore:", highScore);
+                } else {
+                    highScore = 0;
+                    setDoc(docRef, { score: 0 }).catch(console.error);
+                }
+            }, (error) => {
+                console.error("Lỗi khi lắng nghe High Score:", error);
+            });
+        }
+        
+        // Khởi tạo Firebase và xác thực
+        async function setupFirebase() {
+            try {
+                const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+                const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                userId = auth.currentUser?.uid || crypto.randomUUID();
+
+                isFirebaseReady = true;
+                console.log("Hệ thống Firebase đã sẵn sàng. User ID:", userId);
+                
+                listenForHighScore();
+                
+                gameLoop(performance.now()); 
+
+            } catch (error) {
+                console.error("Lỗi: Không thể kết nối hoặc xác thực Firebase. High Score sẽ không được lưu.", error);
+                isFirebaseReady = true; 
+                gameLoop(performance.now());
+            }
+        }
+        
+        // =========================================================
+        // === BẮT ĐẦU LOGIC GAME ===
+        // =========================================================
+        
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const gameMusic = document.getElementById('gameMusic');
         
-        // Kích thước game CHỐT LẠI ngay lúc tải trang (Fullscreen)
         let GAME_WIDTH = window.innerWidth;
         let GAME_HEIGHT = window.innerHeight;
         canvas.width = GAME_WIDTH;
         canvas.height = GAME_HEIGHT;
 
-        let gameState = 'start'; // Trạng thái: 'start', 'running', 'gameOver'
+        let gameState = 'start'; 
         let score = 0;
-        let highScore = 0;
+        let highScore = 0; 
         
+        // === BIẾN AUTO-PLAY VÀ TÂM MÀN HÌNH ===
+        let isAutoPlay = false; 
+        const DANGER_RADIUS = 200; // Bán kính nguy hiểm để AI bắt đầu né
+        
+        // HỆ SỐ TỐC ĐỘ DI CHUYỂN VỀ TÂM
+        const WANDER_SPEED_FACTOR = 1.0; 
+        // ĐỘ CHÍNH XÁC YÊU CẦU ĐỂ DỪNG LẠI Ở TÂM (user request: +/- 10)
+        const CENTER_TOLERANCE = 10; 
+
         const FPS = 60;
         const frameInterval = 1000 / FPS;
         let lastTime = 0;
@@ -64,7 +165,7 @@
         let sadEmojiImageLoaded = false;
         const SAD_EMOJI_SIZE = 40; 
 
-        // === MỚI: Tải hình ảnh Nền Game ===
+        // Tải hình ảnh Nền Game
         const backgroundImage = new Image();
         backgroundImage.src = 'https://cafefcdn.com/203337114487263232/2024/12/28/thanh-pho-thu-duc-15998341412921197373008-1735356701371-173535670166993653631.jpg';
         let backgroundImageLoaded = false;
@@ -89,13 +190,12 @@
         const player = {
             x: GAME_WIDTH / 2,
             y: GAME_HEIGHT / 2,
-            width: 30, // Kích thước fallback
-            height: 30, // Kích thước fallback
+            width: 30, 
+            height: 30, 
             speed: 6, 
             dx: 0,
             dy: 0,
             
-            // Biến cho Animation Bay Lượn
             bobbingAmplitude: 2, 
             bobbingSpeed: 0.05,  
             tiltAmplitude: 0.05, 
@@ -104,23 +204,23 @@
 
         // 3. Đối tượng Đạn & Particles
         let bullets = [];
-        let particles = []; // Particles từ đạn
-        let playerThrustParticles = []; // Particles từ Chosen One (Lửa đẩy)
+        let particles = []; 
+        let playerThrustParticles = []; 
         
         let bulletSpeed = 3;
         let spawnRate = 40;
         let frameCount = 0;
         
-        const PARTICLE_SIZE_FACTOR = 0.35; // === ĐÃ TĂNG KÍCH THƯỚC PARTICLE ĐẠN ===
+        const PARTICLE_SIZE_FACTOR = 0.35; 
         const PARTICLE_LIFETIME = 60;
         const PARTICLE_COUNT = 5;
 
         // === Cấu hình particles lửa đẩy ===
         const THRUST_PARTICLE_SIZE = 5;
-        const THRUST_PARTICLE_LIFETIME = 30; // Ngắn hơn
-        const THRUST_PARTICLE_VELOCITY = 2; // Tốc độ đẩy ra
-        const THRUST_PARTICLE_SPAWN_RATE = 2; // Cứ mỗi 2 frame thì tạo 1 hạt
-        const THRUST_COLOR = '#ff4500'; // OrangeRed
+        const THRUST_PARTICLE_LIFETIME = 30; 
+        const THRUST_PARTICLE_VELOCITY = 2; 
+        const THRUST_PARTICLE_SPAWN_RATE = 2; 
+        const THRUST_COLOR = '#ff4500'; 
 
         function createBullet() {
             let side = Math.floor(Math.random() * 4);
@@ -198,25 +298,105 @@
 
         canvas.addEventListener('click', (e) => {
             if (gameState === 'start') {
-                const startButtonWidth = 200;
-                const startButtonHeight = 60;
-                const startX = GAME_WIDTH / 2 - startButtonWidth / 2;
-                // --- ĐÃ SỬA LỖI: Dùng startButtonHeight thay vì buttonHeight
-                const startY = GAME_HEIGHT / 2 + 50 - startButtonHeight / 2; 
-
                 const rect = canvas.getBoundingClientRect();
                 const mouseX = e.clientX - rect.left;
                 const mouseY = e.clientY - rect.top;
 
+                // Cấu hình vị trí
+                const startButtonWidth = 200;
+                const startButtonHeight = 60;
+                const toggleButtonWidth = 200;
+                const toggleButtonHeight = 50;
+
+                // Vị trí Toggle
+                const toggleX = GAME_WIDTH / 2 - toggleButtonWidth / 2;
+                const toggleY = GAME_HEIGHT / 2 + 50 - toggleButtonHeight / 2; 
+
+                // Vị trí START MISSION 
+                const startX = GAME_WIDTH / 2 - startButtonWidth / 2;
+                const startY = GAME_HEIGHT / 2 + 120 - startButtonHeight / 2;
+                
+                // 1. Logic cho nút START MISSION
                 if (mouseX >= startX && mouseX <= startX + startButtonWidth &&
                     mouseY >= startY && mouseY <= startY + startButtonHeight) {
                     
                     startGame();
+                    return;
+                }
+                
+                // 2. Logic cho nút AUTO-PLAY
+                if (mouseX >= toggleX && mouseX <= toggleX + toggleButtonWidth &&
+                    mouseY >= toggleY && mouseY <= toggleY + toggleButtonHeight) {
+                    
+                    isAutoPlay = !isAutoPlay;
+                    return;
                 }
             }
         });
 
-        function updatePlayerMovement() {
+        // === HÀM TỰ ĐỘNG LÁI (AI) VỚI LOGIC DI CHUYỂN VỀ TÂM ===
+        function autoPilot() {
+            let closestBullet = null;
+            let minDistanceSq = DANGER_RADIUS * DANGER_RADIUS;
+
+            // 1. Tìm viên đạn gần nhất trong bán kính nguy hiểm
+            bullets.forEach(bullet => {
+                const dx = player.x - bullet.x;
+                const dy = player.y - bullet.y;
+                const distSq = dx * dx + dy * dy;
+
+                if (distSq < minDistanceSq) {
+                    minDistanceSq = distSq;
+                    closestBullet = bullet;
+                }
+            });
+
+            player.dx = 0;
+            player.dy = 0;
+
+            if (closestBullet) {
+                // 1. CHẾ ĐỘ NÉ (DODGE MODE) - Sử dụng tốc độ tối đa
+                const angle = Math.atan2(player.y - closestBullet.y, player.x - closestBullet.x);
+                
+                player.dx = Math.cos(angle) * player.speed;
+                player.dy = Math.sin(angle) * player.speed;
+            } else {
+                // 2. CHẾ ĐỘ TÁI ĐỊNH VỊ VỀ TRUNG TÂM (CENTER REPOSITION MODE)
+                
+                const centerX = GAME_WIDTH / 2;
+                const centerY = GAME_HEIGHT / 2;
+                
+                // Kiểm tra xem đã nằm trong khu vực +/- 10px so với tâm chưa
+                const isNearCenterX = Math.abs(player.x - centerX) < CENTER_TOLERANCE;
+                const isNearCenterY = Math.abs(player.y - centerY) < CENTER_TOLERANCE;
+                
+                if (isNearCenterX && isNearCenterY) {
+                    // Đã ở giữa, dừng lại để giữ vị trí tuyệt đối
+                    player.dx = 0;
+                    player.dy = 0;
+                } else {
+                    // Chưa ở giữa, di chuyển nhanh về tâm
+                    const dxToCenter = centerX - player.x;
+                    const dyToCenter = centerY - player.y;
+                    const angleToCenter = Math.atan2(dyToCenter, dxToCenter);
+                    
+                    const wanderSpeed = player.speed * WANDER_SPEED_FACTOR; // Tốc độ 100%
+
+                    player.dx = Math.cos(angleToCenter) * wanderSpeed;
+                    player.dy = Math.sin(angleToCenter) * wanderSpeed;
+                }
+            }
+            
+            // Cập nhật vị trí của player
+            player.x += player.dx;
+            player.y += player.dy;
+
+            // Giới hạn trong màn hình (đảm bảo nó không bao giờ vượt ra khỏi biên)
+            player.x = Math.max(player.width / 2, Math.min(player.x, GAME_WIDTH - player.width / 2));
+            player.y = Math.max(player.height / 2, Math.min(player.y, GAME_HEIGHT - player.height / 2));
+        }
+
+        function manualControl() {
             player.dx = 0;
             player.dy = 0;
 
@@ -238,14 +418,20 @@
             player.y = Math.max(player.height / 2, Math.min(player.y, GAME_HEIGHT - player.height / 2));
         }
 
+        function updatePlayerMovement() {
+            if (isAutoPlay) {
+                autoPilot();
+            } else {
+                manualControl();
+            }
+        }
+
         // 5. Hàm vẽ (DRAWING FUNCTIONS)
         
-        // === MỚI: Hàm vẽ hình nền ===
         function drawBackground() {
             if (backgroundImageLoaded) {
                 ctx.drawImage(backgroundImage, 0, 0, GAME_WIDTH, GAME_HEIGHT);
             } else {
-                // Fallback nếu ảnh chưa tải, vẽ nền trắng
                 ctx.fillStyle = '#ffffff';
                 ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
             }
@@ -261,14 +447,21 @@
                 ctx.translate(player.x, player.y + bobOffset);
                 ctx.rotate(tiltAngle);
 
+                // Highlight Chosen One khi ở chế độ Auto-play
+                if (isAutoPlay) {
+                    ctx.shadowColor = '#ff00ff';
+                    ctx.shadowBlur = 20;
+                }
+
                 ctx.drawImage(playerImage, 
                               -player.width / 2, 
                               -player.height / 2, 
                               player.width, player.height);
 
                 ctx.restore();
+                ctx.shadowBlur = 0; // Tắt shadow sau khi vẽ xong
             } else {
-                ctx.fillStyle = '#000000';
+                ctx.fillStyle = isAutoPlay ? '#ff00ff' : '#000000';
                 ctx.fillRect(player.x - player.width / 2, player.y - player.height / 2, player.width, player.height);
             }
         }
@@ -276,6 +469,7 @@
         function drawBullet(bullet) {
             ctx.save();
             ctx.translate(bullet.x, bullet.y);
+            bullet.rotation += bullet.rotationSpeed;
             ctx.rotate(bullet.rotation);
             ctx.fillStyle = bullet.color;
             ctx.fillRect(-bullet.size / 2, -bullet.size / 2, bullet.size, bullet.size);
@@ -295,14 +489,14 @@
             ctx.restore();
             ctx.globalAlpha = 1;
         }
-
+        
         function drawStartScreen() {
-            drawBackground(); // === Vẽ nền ở màn hình Start ===
+            drawBackground(); 
 
-            ctx.fillStyle = '#fff'; // Chữ trắng trên nền tối của ảnh
+            ctx.fillStyle = '#fff'; 
             ctx.font = 'bold 80px "Inter", sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText('THE CHOSEN ONE', GAME_WIDTH / 2, GAME_HEIGHT / 2 - 80);
+            ctx.fillText('THE CHOSEN ONE', GAME_WIDTH / 2, GAME_HEIGHT / 2 - 120);
 
             if (playerImageLoaded) {
                 const bobOffset = player.bobbingAmplitude * Math.sin(frameCount * player.bobbingSpeed * 0.5); 
@@ -312,7 +506,7 @@
                 const imgHeight = player.height * 2;
                 
                 ctx.save();
-                ctx.translate(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 20 + bobOffset);
+                ctx.translate(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 60 + bobOffset);
                 ctx.rotate(tiltAngle);
                 
                 ctx.drawImage(playerImage, 
@@ -323,24 +517,58 @@
                 ctx.restore();
             }
 
-            const buttonWidth = 200;
-            const buttonHeight = 60;
-            const startX = GAME_WIDTH / 2 - buttonWidth / 2;
-            const startY = GAME_HEIGHT / 2 + 50 - buttonHeight / 2;
+            // Cấu hình vị trí
+            const startButtonWidth = 200;
+            const startButtonHeight = 60;
+            const toggleButtonWidth = 200;
+            const toggleButtonHeight = 50;
+            
+            // --- CÔNG TẮC AUTO-PLAY (Đã di chuyển lên trên) ---
+            const toggleX = GAME_WIDTH / 2 - toggleButtonWidth / 2;
+            const toggleY = GAME_HEIGHT / 2 + 50 - toggleButtonHeight / 2; 
+
+            // Nền & Shadow
+            ctx.fillStyle = isAutoPlay ? '#ff00ff' : '#aaaaaa'; 
+            ctx.shadowColor = isAutoPlay ? '#ff00ff' : '#555555';
+            ctx.shadowBlur = isAutoPlay ? 15 : 8; 
+            ctx.fillRect(toggleX, toggleY, toggleButtonWidth, toggleButtonHeight);
+            ctx.shadowBlur = 0; 
+            
+            // Viền nổi bật
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(toggleX, toggleY, toggleButtonWidth, toggleButtonHeight);
+
+            // Chữ
+            ctx.fillStyle = '#000000'; 
+            ctx.font = 'bold 22px "Inter", sans-serif'; 
+            // CẬP NHẬT TÊN CHẾ ĐỘ (TỐI GIẢN HÓA)
+            ctx.fillText(`AUTO-PLAY: ${isAutoPlay ? 'ON (AI TỰ ĐỘNG CHƠI)' : 'OFF (WASD ĐỂ CHƠI)'}`, GAME_WIDTH / 2, toggleY + 30);
+            
+            
+            // --- NÚT START MISSION (Đã di chuyển xuống dưới Toggle) ---
+            const startX = GAME_WIDTH / 2 - startButtonWidth / 2;
+            const startY = GAME_HEIGHT / 2 + 120 - startButtonHeight / 2;
 
             ctx.fillStyle = '#00ffff'; 
             ctx.shadowColor = '#00ffff';
             ctx.shadowBlur = 15;
-            ctx.fillRect(startX, startY, buttonWidth, buttonHeight);
+            ctx.fillRect(startX, startY, startButtonWidth, startButtonHeight);
             ctx.shadowBlur = 0; 
 
             ctx.fillStyle = '#000000'; 
             ctx.font = 'bold 24px "Inter", sans-serif';
-            ctx.fillText('START MISSION', GAME_WIDTH / 2, GAME_HEIGHT / 2 + 50 + 8);
+            ctx.fillText('START MISSION', GAME_WIDTH / 2, startY + 8 + startButtonHeight / 2);
 
-            ctx.fillStyle = '#fff'; // Chữ trắng trên nền tối
+            
+            // --- HIỂN THỊ HIGH SCORE ĐÃ TẢI ---
+            ctx.fillStyle = '#ffcc00'; 
+            ctx.font = 'bold 30px "Inter", sans-serif';
+            ctx.fillText(`Kỷ lục hiện tại: ${highScore}`, GAME_WIDTH / 2, GAME_HEIGHT / 2 + 200);
+            
+            ctx.fillStyle = '#fff'; 
             ctx.font = '20px Consolas, monospace';
-            ctx.fillText('Né đạn bằng WASD', GAME_WIDTH / 2, GAME_HEIGHT / 2 + 150);
+            ctx.fillText('Sử dụng WASD để điều khiển', GAME_WIDTH / 2, GAME_HEIGHT / 2 + 300); 
         }
         
         function drawScoreAndStatus() {
@@ -353,6 +581,14 @@
 
             ctx.textAlign = 'right';
             ctx.fillText(`HIGH SCORE: ${highScore}`, GAME_WIDTH - 30, 40);
+
+            // Hiển thị trạng thái AI khi đang chạy (ĐÃ BỎ CHỮ THỪA)
+            if (isAutoPlay && gameState === 'running') {
+                ctx.fillStyle = '#ff00ff';
+                ctx.font = 'bold 18px Consolas, monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText('AI PILOT ACTIVE', GAME_WIDTH / 2, 40);
+            }
             
             if (gameState === 'gameOver') {
                 ctx.fillStyle = '#ff3333';
@@ -412,8 +648,9 @@
                     
                     gameState = 'gameOver';
                     gameMusic.pause(); 
+                    
                     if (score > highScore) {
-                        highScore = score;
+                        saveHighScore(score); 
                     }
                     return; 
                 }
@@ -454,10 +691,14 @@
         }
         
         function handleBulletSpawning() {
-            if (frameCount % spawnRate === 0) {
+            // Tần suất spawn
+            const spawnInterval = spawnRate; 
+
+            if (frameCount % spawnInterval === 0) {
                 createBullet();
             }
             
+            // Tăng độ khó mỗi 5 giây
             if (frameCount % (FPS * 5) === 0) {
                  if (spawnRate > 10) spawnRate -= 2; 
                  bulletSpeed += 0.2; 
@@ -493,17 +734,20 @@
             gameMusic.currentTime = 0;
             gameMusic.play().catch(e => console.error("Lỗi phát nhạc:", e));
             lastTime = performance.now(); 
-            gameLoop(lastTime);
         }
         
         function gameLoop(currentTime) {
             
+            if (!isFirebaseReady) {
+                 requestAnimationFrame(gameLoop);
+                 return;
+            }
+
             const deltaTime = currentTime - lastTime;
             
             if (deltaTime >= frameInterval) {
                 lastTime = currentTime - (deltaTime % frameInterval);
 
-                // --- VẼ HÌNH NỀN ĐẦU TIÊN ---
                 drawBackground(); 
 
                 if (gameState === 'start') {
@@ -519,28 +763,25 @@
                     frameCount++;
                     score = Math.floor(frameCount / FPS); 
                 } else if (gameState === 'gameOver') {
-                    // Khi Game Over, vẫn cập nhật và vẽ để thấy hiệu ứng dừng cuối cùng
-                    updateParticles(); // Vẫn cập nhật particles để chúng bay hết
+                    updateParticles(); 
                     drawScoreAndStatus();
                 }
                 
-                // Vẽ các đối tượng CHỈ KHI KHÔNG PHẢI MÀN HÌNH START (đã vẽ ở drawStartScreen)
                 if (gameState !== 'start') {
                     particles.forEach(p => drawParticle(p)); 
                     playerThrustParticles.forEach(p => drawParticle(p)); 
                     bullets.forEach(drawBullet);
                     drawPlayer();
-                    drawScoreAndStatus(); // Vẽ điểm số và trạng thái game over
+                    drawScoreAndStatus(); 
                 }
             }
 
             requestAnimationFrame(gameLoop);
         }
 
-        // Khởi động game
+        // Khởi động Firebase và sau đó khởi động game loop
         window.onload = () => {
-            gameState = 'start';
-            gameLoop(performance.now());
+            setupFirebase();
         };
         
     </script>
