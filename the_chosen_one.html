@@ -34,95 +34,10 @@
     <canvas id="gameCanvas"></canvas>
 
     <script type="module">
-        // === FIREBASE IMPORTS (MANDATORY FOR PERSISTENCE) ===
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        // Đã loại bỏ toàn bộ logic Firebase và High Score theo yêu cầu của người dùng.
+        // Game sẽ khởi động ngay lập tức mà không cần xác thực.
         
-        // Bật debug log cho Firestore
-        setLogLevel('Debug');
-        
-        let db;
-        let auth;
-        let userId = 'anon_user'; 
-        let isFirebaseReady = false; 
-
-        const HIGH_SCORE_COLLECTION = 'high_score_data';
-        const HIGH_SCORE_DOC_ID = 'user_stats';
-
-        // Lấy tham chiếu đến tài liệu High Score của người dùng hiện tại
-        function getHighScoreDocRef() {
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-            // Lưu trữ dữ liệu riêng tư: /artifacts/{appId}/users/{userId}/{collection}/{document}
-            return doc(db, 'artifacts', appId, 'users', userId, HIGH_SCORE_COLLECTION, HIGH_SCORE_DOC_ID);
-        }
-
-        // Hàm lưu High Score mới lên Firestore
-        async function saveHighScore(newScore) {
-             // Chỉ lưu nếu Firebase đã sẵn sàng và điểm mới cao hơn điểm cũ
-             if (!isFirebaseReady || newScore <= highScore) return;
-
-             try {
-                 highScore = newScore; // Cập nhật ngay biến local
-                 const docRef = getHighScoreDocRef();
-                 await setDoc(docRef, { score: newScore });
-                 console.log("Mốc kỷ lục mới đã được ghi nhận:", newScore);
-             } catch (error) {
-                 console.error("Lỗi khi lưu High Score:", error);
-             }
-        }
-
-        // Lắng nghe High Score từ Firestore (Real-time)
-        function listenForHighScore() {
-            if (!isFirebaseReady) return;
-            
-            const docRef = getHighScoreDocRef();
-            onSnapshot(docRef, (docSnap) => {
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    highScore = data.score || 0;
-                    console.log("High Score đã tải từ Firestore:", highScore);
-                } else {
-                    highScore = 0;
-                    setDoc(docRef, { score: 0 }).catch(console.error);
-                }
-            }, (error) => {
-                console.error("Lỗi khi lắng nghe High Score:", error);
-            });
-        }
-        
-        // Khởi tạo Firebase và xác thực
-        async function setupFirebase() {
-            try {
-                const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-                const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
-                const app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-                
-                if (initialAuthToken) {
-                    await signInWithCustomToken(auth, initialAuthToken);
-                } else {
-                    await signInAnonymously(auth);
-                }
-
-                userId = auth.currentUser?.uid || crypto.randomUUID();
-
-                isFirebaseReady = true;
-                console.log("Hệ thống Firebase đã sẵn sàng. User ID:", userId);
-                
-                listenForHighScore();
-                
-                gameLoop(performance.now()); 
-
-            } catch (error) {
-                console.error("Lỗi: Không thể kết nối hoặc xác thực Firebase. High Score sẽ không được lưu.", error);
-                isFirebaseReady = true; 
-                gameLoop(performance.now());
-            }
-        }
+        let score = 0; 
         
         // =========================================================
         // === BẮT ĐẦU LOGIC GAME ===
@@ -138,8 +53,6 @@
         canvas.height = GAME_HEIGHT;
 
         let gameState = 'start'; 
-        let score = 0;
-        let highScore = 0; 
         
         // === BIẾN AUTO-PLAY VÀ TÂM MÀN HÌNH ===
         let isAutoPlay = false; 
@@ -523,7 +436,7 @@
             const toggleButtonWidth = 200;
             const toggleButtonHeight = 50;
             
-            // --- CÔNG TẮC AUTO-PLAY (Đã di chuyển lên trên) ---
+            // --- CÔNG TẮC AUTO-PLAY ---
             const toggleX = GAME_WIDTH / 2 - toggleButtonWidth / 2;
             const toggleY = GAME_HEIGHT / 2 + 50 - toggleButtonHeight / 2; 
 
@@ -542,11 +455,10 @@
             // Chữ
             ctx.fillStyle = '#000000'; 
             ctx.font = 'bold 22px "Inter", sans-serif'; 
-            // CẬP NHẬT TÊN CHẾ ĐỘ (TỐI GIẢN HÓA)
             ctx.fillText(`AUTO-PLAY: ${isAutoPlay ? 'ON (AI TỰ ĐỘNG CHƠI)' : 'OFF (WASD ĐỂ CHƠI)'}`, GAME_WIDTH / 2, toggleY + 30);
             
             
-            // --- NÚT START MISSION (Đã di chuyển xuống dưới Toggle) ---
+            // --- NÚT START MISSION ---
             const startX = GAME_WIDTH / 2 - startButtonWidth / 2;
             const startY = GAME_HEIGHT / 2 + 120 - startButtonHeight / 2;
 
@@ -561,14 +473,10 @@
             ctx.fillText('START MISSION', GAME_WIDTH / 2, startY + 8 + startButtonHeight / 2);
 
             
-            // --- HIỂN THỊ HIGH SCORE ĐÃ TẢI ---
-            ctx.fillStyle = '#ffcc00'; 
-            ctx.font = 'bold 30px "Inter", sans-serif';
-            ctx.fillText(`Kỷ lục hiện tại: ${highScore}`, GAME_WIDTH / 2, GAME_HEIGHT / 2 + 200);
-            
+            // --- Hướng dẫn (Vị trí đã được điều chỉnh) ---
             ctx.fillStyle = '#fff'; 
             ctx.font = '20px Consolas, monospace';
-            ctx.fillText('Sử dụng WASD để điều khiển', GAME_WIDTH / 2, GAME_HEIGHT / 2 + 300); 
+            ctx.fillText('Sử dụng WASD để điều khiển', GAME_WIDTH / 2, GAME_HEIGHT / 2 + 200); 
         }
         
         function drawScoreAndStatus() {
@@ -579,10 +487,9 @@
             ctx.textAlign = 'left';
             ctx.fillText(`SCORE: ${score}`, 30, 40);
 
-            ctx.textAlign = 'right';
-            ctx.fillText(`HIGH SCORE: ${highScore}`, GAME_WIDTH - 30, 40);
+            // Đã loại bỏ hiển thị HIGH SCORE
 
-            // Hiển thị trạng thái AI khi đang chạy (ĐÃ BỎ CHỮ THỪA)
+            // Hiển thị trạng thái AI khi đang chạy
             if (isAutoPlay && gameState === 'running') {
                 ctx.fillStyle = '#ff00ff';
                 ctx.font = 'bold 18px Consolas, monospace';
@@ -649,9 +556,7 @@
                     gameState = 'gameOver';
                     gameMusic.pause(); 
                     
-                    if (score > highScore) {
-                        saveHighScore(score); 
-                    }
+                    // Logic High Score đã được gỡ bỏ
                     return; 
                 }
 
@@ -738,11 +643,6 @@
         
         function gameLoop(currentTime) {
             
-            if (!isFirebaseReady) {
-                 requestAnimationFrame(gameLoop);
-                 return;
-            }
-
             const deltaTime = currentTime - lastTime;
             
             if (deltaTime >= frameInterval) {
@@ -779,9 +679,9 @@
             requestAnimationFrame(gameLoop);
         }
 
-        // Khởi động Firebase và sau đó khởi động game loop
+        // Game loop được gọi ngay khi load xong để khởi động
         window.onload = () => {
-            setupFirebase();
+            gameLoop(performance.now());
         };
         
     </script>
