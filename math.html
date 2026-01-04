@@ -16,13 +16,9 @@
             font-family: 'Google Sans Flex', sans-serif;
             background-color: #ffffff; /* Nền trắng toàn bộ */
             color: #111827;
-            /* Căn giữa tuyệt đối */
-            display: flex;
-            justify-content.center;
-            align-items: center;
-            min-height: 100vh;
+            min-height: 100vh; /* Đảm bảo đủ cao để cuộn */
             padding: 0; 
-            margin: 0; /* Đảm bảo không có margin mặc định */
+            margin: 0; 
         }
 
         /* Hiệu ứng hover cho nút */
@@ -84,7 +80,7 @@
         }
     </style>
 </head>
-<body class="bg-white">
+<body>
 
     <!-- Loading Overlay: Hiện khi người dùng bấm Làm mới/Chơi lại -->
     <div id="loading-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-90 hidden items-center justify-center p-4 z-[100]">
@@ -99,17 +95,17 @@
         </div>
     </div>
 
-    <!-- MAIN GAME CONTAINER (w-full min-h-screen) -->
-    <div id="game-container" class="w-full min-h-screen p-4 md:p-10 bg-white">
+    <!-- MAIN GAME CONTAINER (w-full centered) -->
+    <div id="game-container" class="w-full min-h-screen mx-auto max-w-4xl">
         
-        <!-- Header & Score -->
-        <header class="text-center mb-6 md:mb-8">
+        <!-- Header & Score: STICKY FIX -->
+        <header class="text-center sticky top-0 z-20 bg-white/95 backdrop-blur-sm shadow-lg p-4 mb-4">
             <h1 class="title-styled text-3xl md:text-5xl text-yellow-500 mb-2">
                 MATH GAME 🎮
             </h1>
             <p id="game-mode-display" class="font-semibold text-base md:text-lg transition duration-300">Đang tải...</p>
             
-            <!-- Thống kê: Dùng max-w-4xl và mx-auto để căn giữa nội dung thống kê bên trong khung full-page -->
+            <!-- Thống kê -->
             <div class="mt-4 max-w-4xl mx-auto flex flex-col md:flex-row md:justify-between items-center bg-gray-50 p-3 rounded-2xl shadow-inner space-y-2 md:space-y-0">
                 
                 <!-- Score & Timer Block: Dùng flex-wrap để tránh tràn trên mobile ngang -->
@@ -148,59 +144,69 @@
             </div>
         </header>
 
-        <!-- Problem Area: Căn giữa max-w để nội dung chính không quá rộng trên màn hình lớn -->
-        <div id="problem-area" class="text-center mb-6 md:mb-8 max-w-xl lg:max-w-3xl mx-auto">
-            <div id="feedback-message" class="text-lg font-bold h-6 mb-4"></div>
-            <!-- Problem text to scale up on large screens -->
-            <p id="problem-text" class="text-4xl md:text-6xl font-extrabold text-gray-900 bg-teal-100 py-6 rounded-3xl shadow-md transition duration-300 text-rounded">
-                Đang tải...
-            </p>
-        </div>
-
-        <!-- Options Container (Multiple Choice Mode): Căn giữa max-w để nội dung chính không quá rộng trên màn hình lớn -->
-        <div id="options-container" class="grid grid-cols-2 gap-4 md:gap-6 max-w-lg lg:max-w-xl mx-auto">
-            <!-- Các nút đáp án trắc nghiệm sẽ được chèn ở đây -->
-        </div>
-
-        <!-- Manual Input Container (Input Mode) -->
-        <!-- Keypad: Căn giữa max-w để bàn phím không quá rộng trên màn hình lớn -->
-        <div id="input-mode-container" class="hidden flex flex-col items-center max-w-sm md:max-w-lg mx-auto">
-            <!-- Input Field -->
-            <input type="text" id="answer-input" placeholder="Nhập đáp án..."
-                   class="w-full text-center text-3xl md:text-5xl font-bold p-3 md:p-5 border-4 border-yellow-500 rounded-2xl shadow-lg focus:ring-4 focus:ring-yellow-300 transition duration-200 text-rounded"
-                   value="" inputmode="none" readonly> 
-            
-            <!-- Numerical Keypad -->
-            <div id="number-pad" class="mt-4 md:mt-8 w-full">
-                <div class="grid grid-cols-3 gap-3 md:gap-5">
-                    <!-- Numbers 1-9: Scale up to 5xl on large screens -->
-                    <button class="keypad-button bg-gray-200 text-4xl md:text-5xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('1')">1</button>
-                    <button class="keypad-button bg-gray-200 text-4xl md:text-5xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('2')">2</button>
-                    <button class="keypad-button bg-gray-200 text-4xl md:text-5xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('3')">3</button>
-                    <button class="keypad-button bg-gray-200 text-4xl md:text-5xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('4')">4</button>
-                    <button class="keypad-button bg-gray-200 text-4xl md:text-5xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('5')">5</button>
-                    <button class="keypad-button bg-gray-200 text-4xl md:text-5xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('6')">6</button>
-                    <button class="keypad-button bg-gray-200 text-4xl md:text-5xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('7')">7</button>
-                    <button class="keypad-button bg-gray-200 text-4xl md:text-5xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('8')">8</button>
-                    <button class="keypad-button bg-gray-200 text-4xl md:text-5xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('9')">9</button>
-                    
-                    <!-- Special Keys -->
-                    <button class="keypad-button bg-red-500 text-white text-3xl p-4 rounded-xl font-extrabold shadow-md hover:bg-red-600" onclick="deleteDigit()">
-                        <span class="material-symbols-outlined text-4xl md:text-5xl">backspace</span>
-                    </button>
-                    <button class="keypad-button bg-gray-200 text-4xl md:text-5xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('0')">0</button>
-                    <button class="keypad-button bg-gray-200 text-4xl md:text-5xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendSign()">
-                        <span class="material-symbols-outlined text-4xl md:text-5xl">add_box</span>
-                    </button>
-                </div>
+        <!-- Main Content Area: Padding Top để tránh dính vào Sticky Header -->
+        <main class="p-4 md:p-6 pt-0"> 
+            <!-- Problem Area -->
+            <div id="problem-area" class="text-center mb-6 md:mb-8 max-w-xl lg:max-w-3xl mx-auto">
+                <div id="feedback-message" class="text-lg font-bold h-6 mb-4"></div>
+                <!-- Problem text to scale up on large screens -->
+                <p id="problem-text" class="text-4xl md:text-6xl font-extrabold text-gray-900 bg-teal-100 py-6 rounded-3xl shadow-md transition duration-300 text-rounded">
+                    Đang tải...
+                </p>
             </div>
 
-            <!-- Submit Button: Scale up on large screens -->
-            <button id="submit-button" onclick="submitAnswer()"
-                    class="mt-4 w-full py-3 md:py-6 bg-teal-500 text-white font-bold text-xl md:text-3xl rounded-2xl shadow-xl hover:bg-teal-600 transition duration-150 flex items-center justify-center">
-                <span class="material-symbols-outlined mr-2 md:text-3xl">send</span> GỬI ĐÁP ÁN (ENTER)
-            </button>
-        </div>
+            <!-- Options Container (Multiple Choice Mode) -->
+            <div id="options-container" class="grid grid-cols-2 gap-4 md:gap-6 max-w-lg lg:max-w-xl mx-auto">
+                <!-- Các nút đáp án trắc nghiệm sẽ được chèn ở đây -->
+            </div>
+
+            <!-- Manual Input Container (Input Mode) -->
+            <!-- Keypad: Căn giữa max-w để bàn phím không quá rộng trên màn hình lớn -->
+            <div id="input-mode-container" class="hidden flex flex-col items-center max-w-sm md:max-w-lg mx-auto">
+                
+                <!-- Inline Input and Submit Button -->
+                <div class="flex w-full items-stretch space-x-2">
+                    <!-- Input Field: inputmode="none" ngăn bàn phím ảo của hệ thống bật lên -->
+                    <input type="text" id="answer-input" placeholder="Nhập đáp án..."
+                           class="flex-grow text-center text-3xl md:text-5xl font-bold p-3 md:p-5 border-4 border-yellow-500 rounded-2xl shadow-lg focus:ring-4 focus:ring-yellow-300 transition duration-200 text-rounded"
+                           value="" inputmode="none" readonly> 
+                    
+                    <!-- Inline Submit Button (Small Square/Easy to tap) -->
+                    <button id="submit-button" onclick="submitAnswer()"
+                            class="keypad-button px-4 py-3 md:py-5 bg-teal-500 text-white rounded-2xl shadow-lg hover:bg-teal-600 transition duration-150 flex items-center justify-center"
+                            aria-label="Gửi đáp án">
+                        <span class="material-symbols-outlined text-3xl md:text-4xl">send</span>
+                    </button>
+                </div>
+
+                <!-- Numerical Keypad -->
+                <div id="number-pad" class="mt-4 md:mt-8 w-full">
+                    <div class="grid grid-cols-3 gap-3 md:gap-5">
+                        <!-- Numbers 1-9: Scale up to 5xl on large screens -->
+                        <button class="keypad-button bg-gray-200 text-4xl md:text-5xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('1')">1</button>
+                        <button class="keypad-button bg-gray-200 text-4xl md:text-5xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('2')">2</button>
+                        <button class="keypad-button bg-gray-200 text-4xl md:text-5xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('3')">3</button>
+                        <button class="keypad-button bg-gray-200 text-4xl md:text-5xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('4')">4</button>
+                        <button class="keypad-button bg-gray-200 text-4xl md:text-5xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('5')">5</button>
+                        <button class="keypad-button bg-gray-200 text-4xl md:text-5xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('6')">6</button>
+                        <button class="keypad-button bg-gray-200 text-4xl md:text-5xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('7')">7</button>
+                        <button class="keypad-button bg-gray-200 text-4xl md:text-5xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('8')">8</button>
+                        <button class="keypad-button bg-gray-200 text-4xl md:text-5xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('9')">9</button>
+                        
+                        <!-- Special Keys -->
+                        <button class="keypad-button bg-red-500 text-white text-3xl p-4 rounded-xl font-extrabold shadow-md hover:bg-red-600" onclick="deleteDigit()">
+                            <span class="material-symbols-outlined text-4xl md:text-5xl">backspace</span>
+                        </button>
+                        <button class="keypad-button bg-gray-200 text-4xl md:text-5xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('0')">0</button>
+                        <button class="keypad-button bg-gray-200 text-4xl md:text-5xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendSign()">
+                            <span class="material-symbols-outlined text-4xl md:text-5xl">add_box</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- OLD SUBMIT BUTTON REMOVED: Now integrated inline with the input field -->
+            </div>
+        </main>
 
         <!-- Hidden Modal for Confirmation/Alerts -->
         <div id="alert-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden items-center justify-center p-4 z-50">
@@ -394,6 +400,7 @@
 
                 if (isManualInputMode) {
                     answerInput.readOnly = true;
+                    // Dùng ID submit-button cho nút inline mới
                     document.getElementById('submit-button').disabled = true;
                 } else {
                     Array.from(optionsContainer.children).forEach(btn => btn.disabled = true);
@@ -418,6 +425,7 @@
                 
                 if (isManualInputMode) {
                     answerInput.readOnly = true;
+                    // Dùng ID submit-button cho nút inline mới
                     document.getElementById('submit-button').disabled = true;
                 } else {
                     Array.from(optionsContainer.children).forEach(btn => btn.disabled = true);
@@ -481,11 +489,17 @@
                 optionsContainer.classList.add('hidden');
                 inputModeContainer.classList.remove('hidden');
                 answerInput.value = ''; 
-                answerInput.readOnly = false;
+                answerInput.readOnly = false; // Cho phép nhập liệu từ bàn phím vật lý
                 document.getElementById('submit-button').disabled = false;
                 gameModeDisplay.textContent = `Chế độ: NHẬP ĐÁP ÁN (${INPUT_MAX_TIME}s)`; // Cập nhật thời gian
                 gameModeDisplay.classList.remove('text-gray-600');
                 gameModeDisplay.classList.add('text-yellow-600', 'font-extrabold');
+
+                // FIX: Tự động focus vào ô input cho người dùng PC gõ nhanh
+                setTimeout(() => {
+                    answerInput.focus();
+                }, 0); 
+                
             } else {
                 // Chế độ Trắc nghiệm (MC Mode)
                 inputModeContainer.classList.add('hidden');
@@ -590,7 +604,7 @@
                 
                 // Hiển thị ô vuông với số 1 hoặc 2 cho hotkey
                 button.innerHTML = `
-                    <span class="inline-flex items-center justify-center h-8 w-8 bg-white text-teal-600 rounded-lg mr-3 shadow-inner border-2 border-teal-600 text-sm font-extrabold text-rounded">
+                    <span class="inline-flex items-center justify-center h-8 w-8 bg-white text-teal-600 rounded-lg mr-3 shadow-inner border-2 border-teal-600 text-sm font-extrabold text-rounded option-hotkey">
                         ${keyLabel}
                     </span> ${optionValue}
                 `;
@@ -619,14 +633,11 @@
             if (!isManualInputMode && button) {
                 Array.from(optionsContainer.children).forEach(btn => {
                     const btnValue = parseInt(btn.value);
-                    const originalHTML = btn.innerHTML;
                     
-                    // --- BẮT ĐẦU FIX BUG REBUILD HTML ---
-                    // 1. Tách phần hotkey span (ví dụ: <span...>1</span>)
-                    const hotkeySpanEnd = originalHTML.indexOf('</span>');
-                    if (hotkeySpanEnd === -1) return; 
-                    const hotkeyPrefix = originalHTML.substring(0, hotkeySpanEnd + 7); // Bao gồm </span>
-
+                    // Lấy ra phần tử hotkey (đã thêm class option-hotkey ở renderOptions)
+                    const hotkeyElement = btn.querySelector('.option-hotkey');
+                    const hotkeyPrefix = hotkeyElement ? hotkeyElement.outerHTML : '';
+                    
                     let iconHTML = '';
                     
                     // Loại bỏ style cũ và vô hiệu hóa nút
@@ -647,13 +658,11 @@
                     }
 
                     // Rebuild: Hotkey Span + Space + Icon (if any) + Numeric Value
-                    // Đảm bảo không còn lỗi lặp nội dung.
                     btn.innerHTML = `${hotkeyPrefix} ${iconHTML}${btnValue}`;
-                    // --- KẾT THÚC FIX BUG REBUILD HTML ---
-
                 });
             } else if (isManualInputMode) {
                 answerInput.readOnly = true;
+                // Vô hiệu hóa nút inline submit
                 document.getElementById('submit-button').disabled = true;
                 answerInput.classList.remove('border-yellow-500');
                 answerInput.classList.add(isCorrect ? 'border-green-600' : 'border-red-600');
