@@ -13,11 +13,9 @@
     <style>
         /* Styling chung */
         body {
-            /* Dùng chung Google Sans Flex cho toàn bộ trang */
             font-family: 'Google Sans Flex', sans-serif;
             background-color: #e0f2f1; /* Teal 50 */
             color: #111827;
-            /* Giữ nguyên flex để căn giữa */
             display: flex;
             justify-content.center;
             align-items: center;
@@ -26,14 +24,13 @@
         }
 
         /* Hiệu ứng hover cho nút */
-        .option-button {
+        .option-button, .keypad-button {
             transition: all 0.2s;
         }
 
-        .option-button:hover {
+        .option-button:hover, .keypad-button:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            background-color: #2dd4bf; /* Teal 400 */
         }
 
         /* Hiệu ứng Material Symbols Outline/Fill */
@@ -59,22 +56,19 @@
 
         /* Tiêu đề được tùy chỉnh bằng Google Sans Flex cực dày và bóng */
         .title-styled {
-            /* Cài đặt Font Flex: wght 900 (rất đậm) và ROND 50 (hơi tròn) */
             font-variation-settings: 'wght' 900, 'ROND' 50; 
             text-shadow: 
-                2px 2px 0 #3b82f6, /* Shadow xanh dương (style Minecraft cũ) */
+                2px 2px 0 #3b82f6, 
                 4px 4px 0 #1e3a8a; 
             letter-spacing: 2px;
         }
 
         /* Tối đa hóa độ tròn và ĐỘ DÀY (BOLD) cho điểm số/phép tính */
         .text-rounded {
-            /* Chỉnh độ dày là 900 (MAX BOLD) và độ tròn tối đa là 100 */
             font-variation-settings: 'wght' 900, 'ROND' 100; 
-            /* Thêm bóng nhẹ để làm nổi bật và tạo cảm giác căng bóng */
             text-shadow: 
-                1px 1px 3px rgba(0, 0, 0, 0.2), /* Độ sâu */
-                0 0 8px rgba(255, 255, 255, 0.7); /* Ánh sáng mượt */
+                1px 1px 3px rgba(0, 0, 0, 0.2), 
+                0 0 8px rgba(255, 255, 255, 0.7); 
         }
     </style>
 </head>
@@ -87,7 +81,7 @@
             <h1 class="title-styled text-4xl md:text-5xl text-yellow-500 mb-2">
                 MATH GAME 🎮
             </h1>
-            <p class="text-gray-600 font-semibold text-lg">Phép Tính Siêu Tốc</p>
+            <p id="game-mode-display" class="text-gray-600 font-semibold text-lg transition duration-300">Loading Mode...</p>
             
             <div class="mt-4 flex justify-between items-center bg-gray-50 p-3 rounded-2xl shadow-inner">
                 <!-- Score & Timer Block -->
@@ -96,10 +90,15 @@
                         <span class="material-symbols-outlined mr-2 text-teal-600">military_tech</span>
                         Điểm: <span id="score" class="ml-2 text-teal-700 text-rounded">0</span>
                     </span>
-                    <!-- New Timer Element -->
+                    <!-- Timer Element -->
                     <span class="text-xl font-bold flex items-center">
                         <span class="material-symbols-outlined mr-2 text-red-600">timer</span>
-                        <span id="timer" class="text-red-700 font-extrabold text-rounded">15</span>s
+                        <span id="timer" class="text-red-700 font-extrabold text-rounded">40</span>s
+                    </span>
+                    <!-- Question Counter -->
+                    <span class="text-xl font-bold text-gray-700 flex items-center">
+                        <span class="material-symbols-outlined mr-2 text-blue-600">question_mark</span>
+                        Câu: <span id="question-count-display" class="ml-2 text-blue-700 text-rounded">0</span>
                     </span>
                 </div>
                 
@@ -119,9 +118,48 @@
             </p>
         </div>
 
-        <!-- Options -->
+        <!-- Options Container (Multiple Choice Mode) -->
         <div id="options-container" class="grid grid-cols-2 gap-4">
-            <!-- Các nút đáp án (chỉ còn 2) sẽ được chèn ở đây -->
+            <!-- Các nút đáp án trắc nghiệm sẽ được chèn ở đây -->
+        </div>
+
+        <!-- Manual Input Container (Input Mode) -->
+        <div id="input-mode-container" class="hidden flex flex-col items-center max-w-sm mx-auto">
+            <!-- Input Field -->
+            <input type="text" id="answer-input" placeholder="Nhập đáp án..."
+                   class="w-full text-center text-4xl font-bold p-4 border-4 border-yellow-500 rounded-2xl shadow-lg focus:ring-4 focus:ring-yellow-300 transition duration-200 text-rounded"
+                   value="" inputmode="none" readonly> 
+            
+            <!-- Numerical Keypad -->
+            <div id="number-pad" class="mt-6 w-full">
+                <div class="grid grid-cols-3 gap-3">
+                    <!-- Numbers 1-9 -->
+                    <button class="keypad-button bg-gray-200 text-gray-800 text-4xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('1')">1</button>
+                    <button class="keypad-button bg-gray-200 text-gray-800 text-4xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('2')">2</button>
+                    <button class="keypad-button bg-gray-200 text-gray-800 text-4xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('3')">3</button>
+                    <button class="keypad-button bg-gray-200 text-gray-800 text-4xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('4')">4</button>
+                    <button class="keypad-button bg-gray-200 text-gray-800 text-4xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('5')">5</button>
+                    <button class="keypad-button bg-gray-200 text-gray-800 text-4xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('6')">6</button>
+                    <button class="keypad-button bg-gray-200 text-gray-800 text-4xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('7')">7</button>
+                    <button class="keypad-button bg-gray-200 text-gray-800 text-4xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('8')">8</button>
+                    <button class="keypad-button bg-gray-200 text-gray-800 text-4xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('9')">9</button>
+                    
+                    <!-- Special Keys -->
+                    <button class="keypad-button bg-red-500 text-white text-3xl p-4 rounded-xl font-extrabold shadow-md hover:bg-red-600" onclick="deleteDigit()">
+                        <span class="material-symbols-outlined">backspace</span>
+                    </button>
+                    <button class="keypad-button bg-gray-200 text-gray-800 text-4xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('0')">0</button>
+                    <button class="keypad-button bg-gray-200 text-gray-800 text-4xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendSign()">
+                        <span class="material-symbols-outlined text-4xl">add_box</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <button id="submit-button" onclick="submitAnswer()"
+                    class="mt-4 w-full py-4 bg-teal-500 text-white font-bold text-2xl rounded-2xl shadow-xl hover:bg-teal-600 transition duration-150 flex items-center justify-center">
+                <span class="material-symbols-outlined mr-2">send</span> GỬI ĐÁP ÁN
+            </button>
         </div>
 
         <!-- Hidden Modal for Confirmation/Alerts -->
@@ -138,7 +176,7 @@
     </div>
 
     <script>
-        // Mặc định, các biến Firebase này có thể không tồn tại trong môi trường GitHub Pages.
+        // Các biến môi trường Firebase (dùng cho Immersive, giữ lại)
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
@@ -147,76 +185,107 @@
         const operations = ['+', '-', '*', '/'];
         let correctResult = 0;
         let score = 0;
+        
+        // --- Game State Variables ---
+        let questionCount = 0; // Đếm số câu hỏi đã chơi
+        const CYCLE_LENGTH = 3; // Chu kỳ: 2 câu MC, 1 câu Input
+        let isManualInputMode = false;
 
-        // --- Timer Variables ---
-        const MAX_TIME = 15;
+        const MC_MAX_TIME = 15;
+        const INPUT_MAX_TIME = 40;
+        let MAX_TIME = MC_MAX_TIME; // Thời gian tối đa hiện tại
+        
         let timeLeft = MAX_TIME;
         let timerInterval = null;
         let isGameOver = false; 
-        // --- End Timer Variables ---
+        // --- End Game State Variables ---
 
+        // UI Elements
         const problemText = document.getElementById('problem-text');
         const scoreElement = document.getElementById('score');
         const optionsContainer = document.getElementById('options-container');
+        const inputModeContainer = document.getElementById('input-mode-container');
+        const answerInput = document.getElementById('answer-input');
         const feedbackMessage = document.getElementById('feedback-message');
         const timerElement = document.getElementById('timer'); 
-        
-        /**
-         * Hiển thị modal. Message giờ đây là nội dung HTML để format điểm số.
-         * @param {string} title 
-         * @param {string} contentHTML 
-         */
-        function showModal(title, contentHTML) {
-            // Dừng game khi modal hiển thị
-            if (timerInterval) {
-                clearInterval(timerInterval);
-            }
+        const questionCountDisplay = document.getElementById('question-count-display');
+        const gameModeDisplay = document.getElementById('game-mode-display');
 
-            document.getElementById('modal-title').innerText = title;
-            // Dùng innerHTML để chèn nội dung có chứa styling điểm số
-            document.getElementById('modal-message-container').innerHTML = contentHTML;
-
-            document.getElementById('alert-modal').classList.remove('hidden');
-            document.getElementById('alert-modal').classList.add('flex');
-        }
-
-        function closeModal() {
-            document.getElementById('alert-modal').classList.remove('flex');
-            document.getElementById('alert-modal').classList.add('hidden');
-            
-            // Nếu game over (bất kể do sai hay hết giờ), thì bắt đầu game mới
-            if (isGameOver) {
-                 startGame();
-            }
-        }
-
+        // --- Firebase Init (Non-functional but required for Immersive) ---
         async function initFirebase() {
             try {
-                // Chúng ta không cần Firebase/Auth cho game này, nhưng vẫn gọi hàm
-                // để đảm bảo tính tương thích trong Canvas, ngoài GitHub Pages.
                 console.log("Firebase setup skipped for this single-user game.");
-                userId = crypto.randomUUID(); // Sử dụng placeholder UUID
+                userId = crypto.randomUUID(); 
                 startGame();
             } catch (error) {
                 console.error("Error during Firebase initialization/Auth:", error);
-                // Vẫn bắt đầu game ngay cả khi có lỗi Firebase
                 startGame();
             }
         }
         
-        /**
-         * Xử lý khi hết giờ
-         */
+        // --- Keypad Functions (Manual Input Mode) ---
+
+        /** Thêm ký tự vào ô input */
+        function appendDigit(digit) {
+            if (!isManualInputMode || isGameOver) return;
+
+            // Giới hạn độ dài để tránh tràn màn hình
+            if (answerInput.value.length < 10) {
+                 answerInput.value += digit;
+            }
+        }
+        
+        /** Xóa ký tự cuối cùng */
+        function deleteDigit() {
+            if (!isManualInputMode || isGameOver) return;
+            answerInput.value = answerInput.value.slice(0, -1);
+        }
+
+        /** Thêm dấu âm (-) vào đầu số */
+        function appendSign() {
+            if (!isManualInputMode || isGameOver) return;
+            let val = answerInput.value;
+            if (val.startsWith('-')) {
+                answerInput.value = val.substring(1);
+            } else {
+                answerInput.value = '-' + val;
+            }
+        }
+
+        /** Gửi đáp án cho chế độ nhập liệu */
+        function submitAnswer() {
+            if (!isManualInputMode || isGameOver) return;
+
+            const chosenValue = parseInt(answerInput.value.trim());
+            
+            // Xử lý lỗi input rỗng hoặc NaN
+            if (isNaN(chosenValue)) {
+                displayFeedback('Vui lòng nhập đáp án!', 'text-yellow-600');
+                return;
+            }
+
+            // Xử lý logic đáp án như trắc nghiệm (nhưng không cần nút)
+            checkAnswer(chosenValue, null); 
+        }
+
+        // --- Game Flow Control ---
+
+        /** Xử lý khi hết giờ */
         function handleTimeout() {
-            // Đảm bảo chỉ xử lý timeout một lần
             if (timeLeft === 0 && !isGameOver) {
                 isGameOver = true;
-                // Vô hiệu hóa các nút
-                Array.from(optionsContainer.children).forEach(btn => btn.disabled = true);
+                if (timerInterval) clearInterval(timerInterval);
+
+                // Vô hiệu hóa input/button
+                if (isManualInputMode) {
+                    answerInput.readOnly = true;
+                    document.getElementById('submit-button').disabled = true;
+                } else {
+                    Array.from(optionsContainer.children).forEach(btn => btn.disabled = true);
+                }
                 
-                // Hiển thị thông báo hết giờ với điểm số được format
                 const timeOutMessage = `
-                    <p class="mb-4 text-gray-700">Bạn đã hết 15 giây. Hãy thử lại nhé!</p>
+                    <p class="mb-4 text-gray-700">Bạn đã hết thời gian (${MAX_TIME}s). Hãy thử lại nhé!</p>
                     <div class="text-center my-4">
                         <span class="text-xl font-semibold text-gray-600 block mb-2">Điểm cuối cùng của bạn là:</span>
                         <span class="text-6xl font-extrabold text-red-600 block text-rounded">${score}</span>
@@ -226,23 +295,24 @@
             }
         }
 
-        /**
-         * Xử lý khi trả lời sai (Game Over ngay lập tức)
-         */
+        /** Xử lý khi trả lời sai (Game Over ngay lập tức) */
         function gameOver() {
             if (!isGameOver) {
                 isGameOver = true;
-                if (timerInterval) {
-                    clearInterval(timerInterval);
-                }
-                // Vô hiệu hóa các nút
-                Array.from(optionsContainer.children).forEach(btn => btn.disabled = true);
+                if (timerInterval) clearInterval(timerInterval);
                 
-                // Hiển thị thông báo Game Over với điểm số được format
+                // Vô hiệu hóa input/button
+                if (isManualInputMode) {
+                    answerInput.readOnly = true;
+                    document.getElementById('submit-button').disabled = true;
+                } else {
+                    Array.from(optionsContainer.children).forEach(btn => btn.disabled = true);
+                }
+                
                 const gameOverMessage = `
                     <p class="mb-4 text-gray-700">Rất tiếc, bạn đã trả lời sai. Hãy thử lại nhé!</p>
                     <div class="text-center my-4">
-                        <span class="text-xl font-semibold text-gray-600 block mb-2">Điểm cuối cùng của bạn là:</span>
+                        <span class="text-xl font-semibold text-gray-600 block mb-2">Đáp án đúng là: ${correctResult}</span>
                         <span class="text-6xl font-extrabold text-red-600 block text-rounded">${score}</span>
                     </div>
                 `;
@@ -250,27 +320,20 @@
             }
         }
 
-        /**
-         * Reset và Bắt đầu Timer
-         */
+        /** Reset và Bắt đầu Timer theo mode hiện tại */
         function resetAndStartTimer() {
-            // 1. Clear existing timer
-            if (timerInterval) {
-                clearInterval(timerInterval);
-            }
-
-            // 2. Reset time
+            if (timerInterval) clearInterval(timerInterval);
+            
+            MAX_TIME = isManualInputMode ? INPUT_MAX_TIME : MC_MAX_TIME;
             timeLeft = MAX_TIME;
             timerElement.textContent = timeLeft;
             timerElement.classList.remove('text-yellow-600', 'text-red-600');
-            timerElement.classList.add('text-red-700'); // Default color
+            timerElement.classList.add('text-red-700');
 
-            // 3. Start new interval
             timerInterval = setInterval(() => {
                 timeLeft--;
                 timerElement.textContent = timeLeft;
 
-                // Cảnh báo khi thời gian còn ít
                 if (timeLeft <= 5 && timeLeft > 0) {
                     timerElement.classList.remove('text-red-700');
                     timerElement.classList.add('text-yellow-600');
@@ -284,80 +347,97 @@
             }, 1000);
         }
 
-        /**
-         * Tạo số ngẫu nhiên trong khoảng [min, max]
-         * @param {number} min 
-         * @param {number} max 
-         * @returns {number}
-         */
+        // --- Problem Generation & UI Rendering ---
+        
+        /** Chuyển đổi giữa giao diện trắc nghiệm và nhập liệu */
+        function renderQuestionUI() {
+            if (isManualInputMode) {
+                // Chế độ Nhập liệu (Input Mode)
+                optionsContainer.classList.add('hidden');
+                inputModeContainer.classList.remove('hidden');
+                answerInput.value = ''; // Xóa input cũ
+                answerInput.readOnly = false;
+                gameModeDisplay.textContent = `Chế độ: NHẬP ĐÁP ÁN (40s)`;
+                gameModeDisplay.classList.remove('text-gray-600');
+                gameModeDisplay.classList.add('text-yellow-600', 'font-extrabold');
+            } else {
+                // Chế độ Trắc nghiệm (MC Mode)
+                inputModeContainer.classList.add('hidden');
+                optionsContainer.classList.remove('hidden');
+                gameModeDisplay.textContent = `Chế độ: TRẮC NGHIỆM (15s)`;
+                gameModeDisplay.classList.remove('text-yellow-600', 'font-extrabold');
+                gameModeDisplay.classList.add('text-gray-600');
+            }
+        }
+
+        /** Tạo số ngẫu nhiên trong khoảng [min, max] */
         function getRandomInt(min, max) {
             min = Math.ceil(min);
             max = Math.floor(max);
             return Math.floor(Math.random() * (max - min + 1)) + min;
         }
 
-        /**
-         * Tạo một bài toán mới với kết quả lên đến hàng trăm.
-         */
+        /** Tạo một bài toán mới với kết quả lên đến hàng trăm. */
         function generateProblem() {
+            questionCount++;
+            questionCountDisplay.textContent = questionCount;
+            
+            // Xác định mode: Câu 3 (hoặc 6, 9, ...) là Input Mode.
+            isManualInputMode = (questionCount % CYCLE_LENGTH === 0);
+
             const operator = operations[getRandomInt(0, 3)];
             let num1, num2;
             let problemString;
 
-            // Tăng Range cơ bản để kết quả có thể lên đến hàng trăm (tối đa ~400)
-            const range = 100; 
+            const range = 100; // Phạm vi cơ bản
 
             if (operator === '/') {
-                // Phép Chia: Kết quả (Q) lên đến 20
                 const Q = getRandomInt(2, 20); 
-                // Số chia (D) từ 2 đến 20
                 num2 = getRandomInt(2, 20);
                 num1 = Q * num2;
-                correctResult = num1 / num2; // Kết quả là số nguyên từ 2 đến 20
+                correctResult = num1 / num2; 
             } else if (operator === '-') {
-                // Phép Trừ: Cho phép kết quả là số âm và lớn.
-                num1 = getRandomInt(1, range * 2); // 1 đến 200
-                num2 = getRandomInt(1, range * 2); // 1 đến 200
-                correctResult = num1 - num2; // Kết quả từ -199 đến 199
+                num1 = getRandomInt(1, range * 2); 
+                num2 = getRandomInt(1, range * 2);
+                correctResult = num1 - num2; 
             } else if (operator === '+') {
-                // Phép Cộng: Kết quả lên đến 200
                 num1 = getRandomInt(1, range);
                 num2 = getRandomInt(1, range);
-                correctResult = num1 + num2; // Kết quả từ 2 đến 200
+                correctResult = num1 + num2; 
             } else if (operator === '*') {
-                // Phép Nhân: Kết quả lên đến 400
                 num1 = getRandomInt(1, 20);
                 num2 = getRandomInt(1, 20);
-                correctResult = num1 * num2; // Kết quả từ 1 đến 400
+                correctResult = num1 * num2; 
             }
 
             problemString = `${num1} ${operator} ${num2} = ?`;
             problemText.textContent = problemString;
 
-            generateOptions();
-            resetAndStartTimer(); // Khởi động lại Timer cho câu hỏi mới
+            renderQuestionUI(); // Chuyển đổi UI trước khi tạo đáp án/timer
+            
+            if (!isManualInputMode) {
+                generateMultipleChoiceOptions();
+            } else {
+                optionsContainer.innerHTML = ''; // Đảm bảo clear options
+            }
+
+            resetAndStartTimer(); // Khởi động lại Timer theo mode mới
         }
 
-        /**
-         * Tạo 2 đáp án (1 đúng, 1 sai) với sai số lớn.
-         */
-        function generateOptions() {
+        /** Tạo 2 đáp án (1 đúng, 1 sai) cho chế độ trắc nghiệm */
+        function generateMultipleChoiceOptions() {
             const options = new Set();
             options.add(correctResult);
 
-            // Tạo các đáp án sai theo yêu cầu: [đáp án đúng] + (random -100, 100)
+            // Tạo đáp án sai: [đáp án đúng] + (random -100, 100)
             while (options.size < 2) { 
-                let incorrectAnswer;
-                
-                // Random deviation từ -100 đến 100, nhưng không được là 0
                 let deviation = 0;
                 while (deviation === 0) {
                     deviation = getRandomInt(-100, 100);
                 }
                 
-                incorrectAnswer = correctResult + deviation;
+                const incorrectAnswer = correctResult + deviation;
 
-                // Đảm bảo đáp án sai không trùng với đáp án đúng/đáp án đã có
                 if (!options.has(incorrectAnswer)) {
                     options.add(incorrectAnswer);
                 }
@@ -370,20 +450,15 @@
             renderOptions(optionArray);
         }
 
-        /**
-         * Render các nút đáp án ra giao diện (chỉ render 2 nút).
-         * @param {Array<number>} options 
-         */
+        /** Render các nút đáp án trắc nghiệm */
         function renderOptions(options) {
             optionsContainer.innerHTML = '';
-            // Chỉ sử dụng nhãn A và B
             const labels = ['A', 'B']; 
 
             options.forEach((optionValue, index) => {
                 const button = document.createElement('button');
                 button.textContent = `${labels[index]}. ${optionValue}`;
                 button.value = optionValue;
-                // Thêm flex để căn giữa nội dung và icon
                 button.className = 'option-button text-xl font-bold p-4 bg-teal-500 text-white rounded-full shadow-md hover:bg-teal-600 transition duration-150 flex items-center justify-center';
                 button.onclick = () => checkAnswer(optionValue, button);
                 optionsContainer.appendChild(button);
@@ -391,58 +466,61 @@
         }
 
         /**
-         * Kiểm tra đáp án người dùng chọn.
-         * @param {number} chosenValue 
-         * @param {HTMLButtonElement} button 
+         * Kiểm tra đáp án người dùng chọn (áp dụng cho cả MC và Input).
+         * @param {number} chosenValue Giá trị đáp án người dùng nhập/chọn.
+         * @param {HTMLButtonElement|null} button Nút đã chọn (chỉ dùng cho MC).
          */
         function checkAnswer(chosenValue, button) {
-            // Dừng timer ngay lập tức
-            if (timerInterval) {
-                clearInterval(timerInterval);
-            }
+            if (timerInterval) clearInterval(timerInterval);
             
-            // Vô hiệu hóa tất cả các nút để tránh click kép
-            Array.from(optionsContainer.children).forEach(btn => btn.disabled = true);
-
             const isCorrect = (chosenValue === correctResult);
             let delayTimeout = 1000;
 
-            // --- 1. Apply Styles & Icons to ALL buttons ---
-            Array.from(optionsContainer.children).forEach(btn => {
-                const btnValue = parseInt(btn.value);
-                // Lấy nội dung text ban đầu (ví dụ: "A. 15")
-                const originalText = btn.textContent;
-                
-                // Xóa các class mặc định
-                btn.classList.remove('bg-teal-500', 'hover:bg-teal-600');
-                
-                if (btnValue === correctResult) {
-                    // Đáp án đúng -> Xanh, có icon CHECK
-                    btn.classList.add('bg-green-600', 'shadow-xl'); 
-                    btn.innerHTML = `<span class="material-symbols-outlined text-lg mr-2">done</span>${originalText}`;
-                } else if (btnValue === chosenValue) {
-                    // Nút đã chọn (và nó sai) -> Đỏ, có icon CLOSE
-                    btn.classList.add('bg-red-600', 'shadow-xl'); 
-                    btn.innerHTML = `<span class="material-symbols-outlined text-lg mr-2">close</span>${originalText}`;
-                } else {
-                    // Các nút sai khác (Không được chọn) -> Làm mờ
-                    btn.classList.add('bg-gray-400', 'opacity-70'); 
-                }
-            });
+            // --- 1. Apply Styles & Feedback ---
             
-            // --- 2. Handle Game State & Feedback ---
+            if (!isManualInputMode && button) {
+                // Logic hiển thị đúng/sai cho MC
+                Array.from(optionsContainer.children).forEach(btn => {
+                    const btnValue = parseInt(btn.value);
+                    const originalText = btn.textContent;
+                    btn.classList.remove('bg-teal-500', 'hover:bg-teal-600');
+                    
+                    if (btnValue === correctResult) {
+                        btn.classList.add('bg-green-600', 'shadow-xl'); 
+                        btn.innerHTML = `<span class="material-symbols-outlined text-lg mr-2">done</span>${originalText}`;
+                    } else if (btn === button) {
+                        btn.classList.add('bg-red-600', 'shadow-xl'); 
+                        btn.innerHTML = `<span class="material-symbols-outlined text-lg mr-2">close</span>${originalText}`;
+                    } else {
+                        btn.classList.add('bg-gray-400', 'opacity-70'); 
+                    }
+                    btn.disabled = true; // Vô hiệu hóa tất cả
+                });
+            } else if (isManualInputMode) {
+                // Logic hiển thị đúng/sai cho Input
+                answerInput.readOnly = true;
+                // Tô màu viền input
+                answerInput.classList.remove('border-yellow-500');
+                answerInput.classList.add(isCorrect ? 'border-green-600' : 'border-red-600');
+            }
+
+
+            // --- 2. Handle Game State ---
 
             if (isCorrect) {
                 score++;
-                scoreElement.textContent = score; // Cập nhật điểm ngay lập lập tức
+                scoreElement.textContent = score; 
                 displayFeedback('Chính xác! 🎉', 'text-green-600');
                 
                 // Flash problem text green
                 problemText.classList.remove('bg-teal-100');
                 problemText.classList.add('bg-green-200', 'animate-pulse');
 
-                // Chờ 1 giây rồi tạo bài toán mới
                 setTimeout(() => {
+                    // Reset input mode style
+                    answerInput.classList.remove('border-green-600', 'border-red-600');
+                    answerInput.classList.add('border-yellow-500');
+
                     problemText.classList.remove('bg-green-200', 'animate-pulse');
                     problemText.classList.add('bg-teal-100');
                     generateProblem();
@@ -454,7 +532,6 @@
                 problemText.classList.remove('bg-teal-100');
                 problemText.classList.add('bg-red-200', 'animate-pulse');
 
-                // Chờ 1 giây rồi Game Over
                 setTimeout(() => {
                     problemText.classList.remove('bg-red-200', 'animate-pulse');
                     problemText.classList.add('bg-teal-100');
@@ -463,52 +540,59 @@
             }
         }
 
-        /**
-         * Hiển thị tin nhắn phản hồi ngắn.
-         * @param {string} message 
-         * @param {string} colorClass 
-         */
+        /** Hiển thị tin nhắn phản hồi ngắn. */
         function displayFeedback(message, colorClass) {
-            // Xóa animation cũ nếu có
             feedbackMessage.style.animation = 'none';
-            feedbackMessage.offsetHeight; // Kích hoạt reflow
+            feedbackMessage.offsetHeight; 
             
             feedbackMessage.className = `text-lg font-bold h-6 mb-4 ${colorClass}`;
             feedbackMessage.textContent = message;
             feedbackMessage.style.animation = 'fadeInOut 1.5s ease-in-out';
         }
 
-        /**
-         * Bắt đầu trò chơi hoặc đặt lại điểm số.
-         */
+        /** Bắt đầu trò chơi hoặc đặt lại điểm số. */
         function startGame() {
-            // Dừng mọi interval đang chạy (nếu có)
-            if (timerInterval) {
-                clearInterval(timerInterval);
-            }
+            if (timerInterval) clearInterval(timerInterval);
             
             score = 0;
+            questionCount = 0; // Bắt đầu lại từ câu 0
             scoreElement.textContent = score;
             feedbackMessage.textContent = '';
-            isGameOver = false; // Reset trạng thái Game Over
+            isGameOver = false; 
             
-            // Đặt lại hiển thị thời gian về giá trị ban đầu
-            timeLeft = MAX_TIME;
-            timerElement.textContent = timeLeft;
-            timerElement.classList.remove('text-yellow-600');
-            timerElement.classList.add('text-red-700');
-
+            // Reset Input Style
+            answerInput.classList.remove('border-green-600', 'border-red-600');
+            answerInput.classList.add('border-yellow-500');
+            
             // Đảm bảo problem text trở về màu ban đầu
             problemText.classList.remove('bg-green-200', 'bg-red-200', 'animate-pulse');
             problemText.classList.add('bg-teal-100');
 
-
-            // Bắt đầu bài toán mới và timer
+            // Bắt đầu bài toán đầu tiên (sẽ là MC mode)
             generateProblem();
         }
 
+        function showModal(title, contentHTML) {
+            if (timerInterval) clearInterval(timerInterval);
+
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-message-container').innerHTML = contentHTML;
+
+            document.getElementById('alert-modal').classList.remove('hidden');
+            document.getElementById('alert-modal').classList.add('flex');
+        }
+
+        function closeModal() {
+            document.getElementById('alert-modal').classList.remove('flex');
+            document.getElementById('alert-modal').classList.add('hidden');
+            
+            if (isGameOver) {
+                 startGame();
+            }
+        }
+
         // Khởi tạo Game khi DOM load xong
-        window.onload = initFirebase; // Bắt đầu quá trình init và sau đó là startGame
+        window.onload = initFirebase;
     </script>
 </body>
 </html>
