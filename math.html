@@ -19,6 +19,7 @@
             min-height: 100vh; /* Đảm bảo đủ cao để cuộn */
             padding: 0; 
             margin: 0; 
+            overflow-x: hidden; /* FIX CHÍNH: Ngăn cuộn ngang khi cửa sổ bị thu nhỏ quá mức trên PC */
         }
 
         /* Hiệu ứng hover cho nút */
@@ -162,7 +163,8 @@
 
             <!-- Manual Input Container (Input Mode) -->
             <!-- Keypad: Căn giữa max-w để bàn phím không quá rộng trên màn hình lớn -->
-            <div id="input-mode-container" class="hidden flex flex-col items-center max-w-xs md:max-w-lg mx-auto">
+            <!-- FIX: Đã đặt lại max-w-sm cho mobile/PC thu nhỏ và md:max-w-lg cho desktop. Lỗi tràn ngang được khắc phục bằng overflow-x: hidden trên body -->
+            <div id="input-mode-container" class="hidden flex flex-col items-center max-w-sm md:max-w-lg mx-auto">
                 
                 <!-- Inline Input and Submit Button -->
                 <div class="flex w-full items-stretch space-x-2">
