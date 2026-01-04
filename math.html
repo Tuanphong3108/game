@@ -20,12 +20,13 @@
             justify-content.center;
             align-items: center;
             min-height: 100vh;
-            padding: 20px;
+            padding: 12px;
         }
 
         /* Hiệu ứng hover cho nút */
         .option-button, .keypad-button {
             transition: all 0.2s;
+            min-height: 64px; /* Đảm bảo nút đủ lớn cho ngón tay chạm */
         }
 
         .option-button:hover, .keypad-button:hover {
@@ -74,36 +75,39 @@
 </head>
 <body class="bg-gray-100">
 
-    <div id="game-container" class="w-full max-w-5xl min-h-[90vh] p-6 md:p-10 bg-white shadow-2xl rounded-3xl border-b-4 border-teal-500 transform transition duration-500 hover:scale-[1.01]">
+    <!-- Tăng max-w lên 7xl cho PC và màn hình ngang rộng -->
+    <div id="game-container" class="w-full max-w-xl lg:max-w-7xl min-h-[90vh] p-4 md:p-10 bg-white shadow-2xl rounded-3xl border-b-4 border-teal-500">
         
         <!-- Header & Score -->
-        <header class="text-center mb-8">
-            <h1 class="title-styled text-4xl md:text-5xl text-yellow-500 mb-2">
+        <header class="text-center mb-6 md:mb-8">
+            <h1 class="title-styled text-3xl md:text-5xl text-yellow-500 mb-2">
                 MATH GAME 🎮
             </h1>
-            <p id="game-mode-display" class="text-gray-600 font-semibold text-lg transition duration-300">Loading Mode...</p>
+            <p id="game-mode-display" class="font-semibold text-base md:text-lg transition duration-300">Loading Mode...</p>
             
-            <div class="mt-4 flex justify-between items-center bg-gray-50 p-3 rounded-2xl shadow-inner">
-                <!-- Score & Timer Block -->
-                <div class="flex space-x-6">
-                    <span class="text-xl font-bold text-gray-700 flex items-center">
-                        <span class="material-symbols-outlined mr-2 text-teal-600">military_tech</span>
-                        Điểm: <span id="score" class="ml-2 text-teal-700 text-rounded">0</span>
+            <!-- Thống kê luôn dàn hàng ngang trên desktop/ngang và bọc lại trên mobile -->
+            <div class="mt-4 flex flex-col md:flex-row md:justify-between items-center bg-gray-50 p-3 rounded-2xl shadow-inner space-y-2 md:space-y-0">
+                
+                <!-- Score & Timer Block: Dùng flex-wrap để tránh tràn trên mobile ngang -->
+                <div class="flex flex-wrap justify-center md:justify-start space-x-4 md:space-x-8 text-base md:text-xl">
+                    <span class="font-bold text-gray-700 flex items-center">
+                        <span class="material-symbols-outlined mr-1 md:mr-2 text-teal-600">military_tech</span>
+                        Điểm: <span id="score" class="ml-1 md:ml-2 text-teal-700 text-rounded">0</span>
                     </span>
                     <!-- Timer Element -->
-                    <span class="text-xl font-bold flex items-center">
-                        <span class="material-symbols-outlined mr-2 text-red-600">timer</span>
+                    <span class="font-bold flex items-center">
+                        <span class="material-symbols-outlined mr-1 md:mr-2 text-red-600">timer</span>
                         <span id="timer" class="text-red-700 font-extrabold text-rounded">40</span>s
                     </span>
                     <!-- Question Counter -->
-                    <span class="text-xl font-bold text-gray-700 flex items-center">
-                        <span class="material-symbols-outlined mr-2 text-blue-600">question_mark</span>
-                        Câu: <span id="question-count-display" class="ml-2 text-blue-700 text-rounded">0</span>
+                    <span class="font-bold text-gray-700 flex items-center">
+                        <span class="material-symbols-outlined mr-1 md:mr-2 text-blue-600">question_mark</span>
+                        Câu: <span id="question-count-display" class="ml-1 md:ml-2 text-blue-700 text-rounded">0</span>
                     </span>
                 </div>
                 
                 <!-- Reset Button -->
-                <button onclick="startGame()" class="px-3 py-1 bg-blue-500 text-white font-medium rounded-full hover:bg-blue-600 transition duration-150 flex items-center">
+                <button onclick="location.reload()" class="w-full md:w-auto mt-2 md:mt-0 px-3 py-1 bg-blue-500 text-white font-medium rounded-full hover:bg-blue-600 transition duration-150 flex items-center justify-center">
                     <span class="material-symbols-outlined text-sm mr-1">refresh</span>
                     Làm mới
                 </button>
@@ -111,54 +115,56 @@
         </header>
 
         <!-- Problem Area -->
-        <div id="problem-area" class="text-center mb-8">
+        <div id="problem-area" class="text-center mb-6 md:mb-8">
             <div id="feedback-message" class="text-lg font-bold h-6 mb-4"></div>
-            <p id="problem-text" class="text-5xl md:text-6xl font-extrabold text-gray-900 bg-teal-100 py-6 rounded-3xl shadow-md transition duration-300 text-rounded">
+            <!-- Problem text to scale up on large screens -->
+            <p id="problem-text" class="text-4xl md:text-6xl font-extrabold text-gray-900 bg-teal-100 py-6 rounded-3xl shadow-md transition duration-300 text-rounded">
                 Loading...
             </p>
         </div>
 
         <!-- Options Container (Multiple Choice Mode) -->
-        <div id="options-container" class="grid grid-cols-2 gap-4">
+        <div id="options-container" class="grid grid-cols-2 gap-4 md:gap-6">
             <!-- Các nút đáp án trắc nghiệm sẽ được chèn ở đây -->
         </div>
 
         <!-- Manual Input Container (Input Mode) -->
-        <div id="input-mode-container" class="hidden flex flex-col items-center max-w-sm mx-auto">
+        <!-- Keypad: Max width thay đổi từ sm sang md:max-w-lg để mở rộng trên PC -->
+        <div id="input-mode-container" class="hidden flex flex-col items-center max-w-sm md:max-w-lg mx-auto">
             <!-- Input Field -->
             <input type="text" id="answer-input" placeholder="Nhập đáp án..."
-                   class="w-full text-center text-4xl font-bold p-4 border-4 border-yellow-500 rounded-2xl shadow-lg focus:ring-4 focus:ring-yellow-300 transition duration-200 text-rounded"
+                   class="w-full text-center text-3xl md:text-5xl font-bold p-3 md:p-5 border-4 border-yellow-500 rounded-2xl shadow-lg focus:ring-4 focus:ring-yellow-300 transition duration-200 text-rounded"
                    value="" inputmode="none" readonly> 
             
             <!-- Numerical Keypad -->
-            <div id="number-pad" class="mt-6 w-full">
-                <div class="grid grid-cols-3 gap-3">
-                    <!-- Numbers 1-9 -->
-                    <button class="keypad-button bg-gray-200 text-gray-800 text-4xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('1')">1</button>
-                    <button class="keypad-button bg-gray-200 text-gray-800 text-4xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('2')">2</button>
-                    <button class="keypad-button bg-gray-200 text-gray-800 text-4xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('3')">3</button>
-                    <button class="keypad-button bg-gray-200 text-gray-800 text-4xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('4')">4</button>
-                    <button class="keypad-button bg-gray-200 text-gray-800 text-4xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('5')">5</button>
-                    <button class="keypad-button bg-gray-200 text-gray-800 text-4xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('6')">6</button>
-                    <button class="keypad-button bg-gray-200 text-gray-800 text-4xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('7')">7</button>
-                    <button class="keypad-button bg-gray-200 text-gray-800 text-4xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('8')">8</button>
-                    <button class="keypad-button bg-gray-200 text-gray-800 text-4xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('9')">9</button>
+            <div id="number-pad" class="mt-4 md:mt-8 w-full">
+                <div class="grid grid-cols-3 gap-3 md:gap-5">
+                    <!-- Numbers 1-9: Scale up to 5xl on large screens -->
+                    <button class="keypad-button bg-gray-200 text-4xl md:text-5xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('1')">1</button>
+                    <button class="keypad-button bg-gray-200 text-4xl md:text-5xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('2')">2</button>
+                    <button class="keypad-button bg-gray-200 text-4xl md:text-5xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('3')">3</button>
+                    <button class="keypad-button bg-gray-200 text-4xl md:text-5xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('4')">4</button>
+                    <button class="keypad-button bg-gray-200 text-4xl md:text-5xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('5')">5</button>
+                    <button class="keypad-button bg-gray-200 text-4xl md:text-5xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('6')">6</button>
+                    <button class="keypad-button bg-gray-200 text-4xl md:text-5xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('7')">7</button>
+                    <button class="keypad-button bg-gray-200 text-4xl md:text-5xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('8')">8</button>
+                    <button class="keypad-button bg-gray-200 text-4xl md:text-5xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('9')">9</button>
                     
                     <!-- Special Keys -->
                     <button class="keypad-button bg-red-500 text-white text-3xl p-4 rounded-xl font-extrabold shadow-md hover:bg-red-600" onclick="deleteDigit()">
-                        <span class="material-symbols-outlined">backspace</span>
+                        <span class="material-symbols-outlined text-4xl md:text-5xl">backspace</span>
                     </button>
-                    <button class="keypad-button bg-gray-200 text-gray-800 text-4xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('0')">0</button>
-                    <button class="keypad-button bg-gray-200 text-gray-800 text-4xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendSign()">
-                        <span class="material-symbols-outlined text-4xl">add_box</span>
+                    <button class="keypad-button bg-gray-200 text-4xl md:text-5xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendDigit('0')">0</button>
+                    <button class="keypad-button bg-gray-200 text-4xl md:text-5xl p-4 rounded-xl font-extrabold shadow-md hover:bg-gray-300" onclick="appendSign()">
+                        <span class="material-symbols-outlined text-4xl md:text-5xl">add_box</span>
                     </button>
                 </div>
             </div>
 
-            <!-- Submit Button -->
+            <!-- Submit Button: Scale up on large screens -->
             <button id="submit-button" onclick="submitAnswer()"
-                    class="mt-4 w-full py-4 bg-teal-500 text-white font-bold text-2xl rounded-2xl shadow-xl hover:bg-teal-600 transition duration-150 flex items-center justify-center">
-                <span class="material-symbols-outlined mr-2">send</span> GỬI ĐÁP ÁN
+                    class="mt-4 w-full py-3 md:py-6 bg-teal-500 text-white font-bold text-xl md:text-3xl rounded-2xl shadow-xl hover:bg-teal-600 transition duration-150 flex items-center justify-center">
+                <span class="material-symbols-outlined mr-2 md:text-3xl">send</span> GỬI ĐÁP ÁN
             </button>
         </div>
 
@@ -167,10 +173,10 @@
             <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full text-center">
                 <h3 id="modal-title" class="text-2xl font-bold mb-3 text-red-600">Lỗi!</h3>
                 <div id="modal-message-container" class="text-gray-700">
-                    <p>Có lỗi xảy ra.</p> <!-- Nội dung mặc định -->
+                    <p>Có lỗi xảy ra.</p>
                 </div>
-                <!-- Nút "Chơi lại" (New Game) -->
-                <button onclick="closeModal()" class="mt-4 px-4 py-2 bg-blue-500 text-white rounded-md font-medium hover:bg-blue-600 transition duration-150">Chơi lại</button>
+                <!-- Nút "Chơi lại" (Reload page) -->
+                <button onclick="location.reload()" class="mt-4 px-4 py-2 bg-blue-500 text-white rounded-md font-medium hover:bg-blue-600 transition duration-150">Chơi lại</button>
             </div>
         </div>
     </div>
@@ -179,7 +185,7 @@
         // Các biến môi trường Firebase (dùng cho Immersive, giữ lại)
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initialAuthToken : null;
         let auth, db, userId;
 
         const operations = ['+', '-', '*', '/'];
@@ -187,13 +193,13 @@
         let score = 0;
         
         // --- Game State Variables ---
-        let questionCount = 0; // Đếm số câu hỏi đã chơi
-        const CYCLE_LENGTH = 3; // Chu kỳ: 2 câu MC, 1 câu Input
+        let questionCount = 0; 
+        const CYCLE_LENGTH = 3; 
         let isManualInputMode = false;
 
         const MC_MAX_TIME = 15;
         const INPUT_MAX_TIME = 40;
-        let MAX_TIME = MC_MAX_TIME; // Thời gian tối đa hiện tại
+        let MAX_TIME = MC_MAX_TIME; 
         
         let timeLeft = MAX_TIME;
         let timerInterval = null;
@@ -211,15 +217,25 @@
         const questionCountDisplay = document.getElementById('question-count-display');
         const gameModeDisplay = document.getElementById('game-mode-display');
 
-        // --- Firebase Init (Non-functional but required for Immersive) ---
-        async function initFirebase() {
+        /**
+         * Hàm khởi tạo logic game. Chạy khi trang được load.
+         */
+        function initializeGameLogic() {
             try {
-                console.log("Firebase setup skipped for this single-user game.");
+                console.log("Firebase setup skipped. Running game logic...");
                 userId = crypto.randomUUID(); 
-                startGame();
+                
+                questionCount = 0;
+                score = 0;
+                scoreElement.textContent = score;
+                feedbackMessage.textContent = '';
+                isGameOver = false; 
+
+                generateProblem(); 
+
             } catch (error) {
-                console.error("Error during Firebase initialization/Auth:", error);
-                startGame();
+                console.error("Error during game initialization:", error);
+                generateProblem(); 
             }
         }
         
@@ -228,9 +244,8 @@
         /** Thêm ký tự vào ô input */
         function appendDigit(digit) {
             if (!isManualInputMode || isGameOver) return;
-
-            // Giới hạn độ dài để tránh tràn màn hình
-            if (answerInput.value.length < 10) {
+            // Cho phép tối đa 10 chữ số
+            if (answerInput.value.replace('-', '').length < 10) {
                  answerInput.value += digit;
             }
         }
@@ -256,15 +271,18 @@
         function submitAnswer() {
             if (!isManualInputMode || isGameOver) return;
 
-            const chosenValue = parseInt(answerInput.value.trim());
-            
-            // Xử lý lỗi input rỗng hoặc NaN
-            if (isNaN(chosenValue)) {
+            if (answerInput.value.trim() === '' || answerInput.value.trim() === '-') {
                 displayFeedback('Vui lòng nhập đáp án!', 'text-yellow-600');
                 return;
             }
+            
+            const chosenValue = parseInt(answerInput.value.trim());
+            
+            if (isNaN(chosenValue)) {
+                displayFeedback('Input không hợp lệ!', 'text-yellow-600');
+                return;
+            }
 
-            // Xử lý logic đáp án như trắc nghiệm (nhưng không cần nút)
             checkAnswer(chosenValue, null); 
         }
 
@@ -276,7 +294,6 @@
                 isGameOver = true;
                 if (timerInterval) clearInterval(timerInterval);
 
-                // Vô hiệu hóa input/button
                 if (isManualInputMode) {
                     answerInput.readOnly = true;
                     document.getElementById('submit-button').disabled = true;
@@ -301,7 +318,6 @@
                 isGameOver = true;
                 if (timerInterval) clearInterval(timerInterval);
                 
-                // Vô hiệu hóa input/button
                 if (isManualInputMode) {
                     answerInput.readOnly = true;
                     document.getElementById('submit-button').disabled = true;
@@ -327,6 +343,7 @@
             MAX_TIME = isManualInputMode ? INPUT_MAX_TIME : MC_MAX_TIME;
             timeLeft = MAX_TIME;
             timerElement.textContent = timeLeft;
+            
             timerElement.classList.remove('text-yellow-600', 'text-red-600');
             timerElement.classList.add('text-red-700');
 
@@ -355,8 +372,9 @@
                 // Chế độ Nhập liệu (Input Mode)
                 optionsContainer.classList.add('hidden');
                 inputModeContainer.classList.remove('hidden');
-                answerInput.value = ''; // Xóa input cũ
+                answerInput.value = ''; 
                 answerInput.readOnly = false;
+                document.getElementById('submit-button').disabled = false;
                 gameModeDisplay.textContent = `Chế độ: NHẬP ĐÁP ÁN (40s)`;
                 gameModeDisplay.classList.remove('text-gray-600');
                 gameModeDisplay.classList.add('text-yellow-600', 'font-extrabold');
@@ -382,12 +400,11 @@
             questionCount++;
             questionCountDisplay.textContent = questionCount;
             
-            // Xác định mode: Câu 3 (hoặc 6, 9, ...) là Input Mode.
+            // 2 câu MC, 1 câu Input, lặp lại (câu 3, 6, 9... là Input)
             isManualInputMode = (questionCount % CYCLE_LENGTH === 0);
 
             const operator = operations[getRandomInt(0, 3)];
             let num1, num2;
-            let problemString;
 
             const range = 100; // Phạm vi cơ bản
 
@@ -410,18 +427,18 @@
                 correctResult = num1 * num2; 
             }
 
-            problemString = `${num1} ${operator} ${num2} = ?`;
+            const problemString = `${num1} ${operator} ${num2} = ?`;
             problemText.textContent = problemString;
 
-            renderQuestionUI(); // Chuyển đổi UI trước khi tạo đáp án/timer
+            renderQuestionUI(); 
             
             if (!isManualInputMode) {
                 generateMultipleChoiceOptions();
             } else {
-                optionsContainer.innerHTML = ''; // Đảm bảo clear options
+                optionsContainer.innerHTML = ''; 
             }
 
-            resetAndStartTimer(); // Khởi động lại Timer theo mode mới
+            resetAndStartTimer(); 
         }
 
         /** Tạo 2 đáp án (1 đúng, 1 sai) cho chế độ trắc nghiệm */
@@ -429,11 +446,11 @@
             const options = new Set();
             options.add(correctResult);
 
-            // Tạo đáp án sai: [đáp án đúng] + (random -100, 100)
             while (options.size < 2) { 
                 let deviation = 0;
                 while (deviation === 0) {
-                    deviation = getRandomInt(-100, 100);
+                    // Tạo độ lệch ngẫu nhiên
+                    deviation = getRandomInt(-Math.abs(correctResult) - 10, Math.abs(correctResult) + 10);
                 }
                 
                 const incorrectAnswer = correctResult + deviation;
@@ -443,7 +460,6 @@
                 }
             }
 
-            // Chuyển Set sang Array và xáo trộn
             let optionArray = Array.from(options);
             optionArray.sort(() => Math.random() - 0.5);
 
@@ -459,7 +475,8 @@
                 const button = document.createElement('button');
                 button.textContent = `${labels[index]}. ${optionValue}`;
                 button.value = optionValue;
-                button.className = 'option-button text-xl font-bold p-4 bg-teal-500 text-white rounded-full shadow-md hover:bg-teal-600 transition duration-150 flex items-center justify-center';
+                // Text size md:text-2xl để ổn định trên desktop
+                button.className = 'option-button text-xl md:text-2xl font-bold p-4 bg-teal-500 text-white rounded-full shadow-md hover:bg-teal-600 transition duration-150 flex items-center justify-center';
                 button.onclick = () => checkAnswer(optionValue, button);
                 optionsContainer.appendChild(button);
             });
@@ -467,8 +484,6 @@
 
         /**
          * Kiểm tra đáp án người dùng chọn (áp dụng cho cả MC và Input).
-         * @param {number} chosenValue Giá trị đáp án người dùng nhập/chọn.
-         * @param {HTMLButtonElement|null} button Nút đã chọn (chỉ dùng cho MC).
          */
         function checkAnswer(chosenValue, button) {
             if (timerInterval) clearInterval(timerInterval);
@@ -479,7 +494,6 @@
             // --- 1. Apply Styles & Feedback ---
             
             if (!isManualInputMode && button) {
-                // Logic hiển thị đúng/sai cho MC
                 Array.from(optionsContainer.children).forEach(btn => {
                     const btnValue = parseInt(btn.value);
                     const originalText = btn.textContent;
@@ -494,12 +508,11 @@
                     } else {
                         btn.classList.add('bg-gray-400', 'opacity-70'); 
                     }
-                    btn.disabled = true; // Vô hiệu hóa tất cả
+                    btn.disabled = true; 
                 });
             } else if (isManualInputMode) {
-                // Logic hiển thị đúng/sai cho Input
                 answerInput.readOnly = true;
-                // Tô màu viền input
+                document.getElementById('submit-button').disabled = true;
                 answerInput.classList.remove('border-yellow-500');
                 answerInput.classList.add(isCorrect ? 'border-green-600' : 'border-red-600');
             }
@@ -512,12 +525,10 @@
                 scoreElement.textContent = score; 
                 displayFeedback('Chính xác! 🎉', 'text-green-600');
                 
-                // Flash problem text green
                 problemText.classList.remove('bg-teal-100');
                 problemText.classList.add('bg-green-200', 'animate-pulse');
 
                 setTimeout(() => {
-                    // Reset input mode style
                     answerInput.classList.remove('border-green-600', 'border-red-600');
                     answerInput.classList.add('border-yellow-500');
 
@@ -528,7 +539,7 @@
 
             } else {
                 displayFeedback('Sai rồi! 😢', 'text-red-600');
-                // Flash problem text red
+                
                 problemText.classList.remove('bg-teal-100');
                 problemText.classList.add('bg-red-200', 'animate-pulse');
 
@@ -550,28 +561,7 @@
             feedbackMessage.style.animation = 'fadeInOut 1.5s ease-in-out';
         }
 
-        /** Bắt đầu trò chơi hoặc đặt lại điểm số. */
-        function startGame() {
-            if (timerInterval) clearInterval(timerInterval);
-            
-            score = 0;
-            questionCount = 0; // Bắt đầu lại từ câu 0
-            scoreElement.textContent = score;
-            feedbackMessage.textContent = '';
-            isGameOver = false; 
-            
-            // Reset Input Style
-            answerInput.classList.remove('border-green-600', 'border-red-600');
-            answerInput.classList.add('border-yellow-500');
-            
-            // Đảm bảo problem text trở về màu ban đầu
-            problemText.classList.remove('bg-green-200', 'bg-red-200', 'animate-pulse');
-            problemText.classList.add('bg-teal-100');
-
-            // Bắt đầu bài toán đầu tiên (sẽ là MC mode)
-            generateProblem();
-        }
-
+        /** Hiển thị modal */
         function showModal(title, contentHTML) {
             if (timerInterval) clearInterval(timerInterval);
 
@@ -582,17 +572,16 @@
             document.getElementById('alert-modal').classList.add('flex');
         }
 
+        /** Đóng modal và reload trang */
         function closeModal() {
             document.getElementById('alert-modal').classList.remove('flex');
             document.getElementById('alert-modal').classList.add('hidden');
             
-            if (isGameOver) {
-                 startGame();
-            }
+            location.reload(); 
         }
 
         // Khởi tạo Game khi DOM load xong
-        window.onload = initFirebase;
+        window.onload = initializeGameLogic;
     </script>
 </body>
 </html>
