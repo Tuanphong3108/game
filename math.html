@@ -162,25 +162,13 @@
             </div>
 
             <!-- Manual Input Container (Input Mode) -->
-            <!-- Keypad: Căn giữa max-w để bàn phím không quá rộng trên màn hình lớn -->
-            <!-- FIX: Đã đặt lại max-w-sm cho mobile/PC thu nhỏ và md:max-w-lg cho desktop. Lỗi tràn ngang được khắc phục bằng overflow-x: hidden trên body -->
             <div id="input-mode-container" class="hidden flex flex-col items-center max-w-sm md:max-w-lg mx-auto">
                 
-                <!-- Inline Input and Submit Button -->
-                <div class="flex w-full items-stretch space-x-2">
-                    <!-- Input Field: inputmode="none" ngăn bàn phím ảo của hệ thống bật lên -->
-                    <input type="text" id="answer-input" placeholder="Nhập đáp án..."
-                           class="flex-grow text-center text-3xl md:text-5xl font-bold p-3 md:p-5 border-4 border-yellow-500 rounded-2xl shadow-lg focus:ring-4 focus:ring-yellow-300 transition duration-200 text-rounded"
-                           value="" inputmode="none" readonly> 
-                    
-                    <!-- Inline Submit Button (Small Square/Easy to tap) -->
-                    <button id="submit-button" onclick="submitAnswer()"
-                            class="keypad-button px-4 py-3 md:py-5 bg-teal-500 text-white rounded-2xl shadow-lg hover:bg-teal-600 transition duration-150 flex items-center justify-center"
-                            aria-label="Gửi đáp án">
-                        <span class="material-symbols-outlined text-3xl md:text-4xl">send</span>
-                    </button>
-                </div>
-
+                <!-- Input Field: Đã gỡ nút Submit inline -->
+                <input type="text" id="answer-input" placeholder="Nhập đáp án..."
+                       class="w-full text-center text-3xl md:text-5xl font-bold p-3 md:p-5 border-4 border-yellow-500 rounded-2xl shadow-lg focus:ring-4 focus:ring-yellow-300 transition duration-200 text-rounded"
+                       value="" inputmode="none" readonly> 
+                
                 <!-- Numerical Keypad -->
                 <div id="number-pad" class="mt-4 md:mt-8 w-full">
                     <div class="grid grid-cols-3 gap-3 md:gap-5">
@@ -206,7 +194,13 @@
                     </div>
                 </div>
 
-                <!-- OLD SUBMIT BUTTON REMOVED: Now integrated inline with the input field -->
+                <!-- Nút Submit lớn, full-width (đã di chuyển về đây) -->
+                <button id="submit-button" onclick="submitAnswer()"
+                        class="keypad-button w-full mt-4 md:mt-6 px-4 py-3 md:py-5 bg-teal-500 text-white rounded-2xl font-extrabold text-2xl md:text-3xl shadow-lg hover:bg-teal-600 transition duration-150 flex items-center justify-center"
+                        aria-label="Gửi đáp án">
+                    <span class="material-symbols-outlined text-3xl md:text-4xl mr-2">send</span>
+                    GỬI ĐÁP ÁN
+                </button>
             </div>
         </main>
 
@@ -264,6 +258,7 @@
         const questionCountDisplay = document.getElementById('question-count-display');
         const gameModeDisplay = document.getElementById('game-mode-display');
         const loadingOverlay = document.getElementById('loading-overlay');
+        const submitButton = document.getElementById('submit-button'); // Thêm tham chiếu nút Submit
 
         /**
          * Xử lý đầu vào từ bàn phím (hotkey cho MC và Enter cho Input)
@@ -402,8 +397,7 @@
 
                 if (isManualInputMode) {
                     answerInput.readOnly = true;
-                    // Dùng ID submit-button cho nút inline mới
-                    document.getElementById('submit-button').disabled = true;
+                    submitButton.disabled = true;
                 } else {
                     Array.from(optionsContainer.children).forEach(btn => btn.disabled = true);
                 }
@@ -427,8 +421,7 @@
                 
                 if (isManualInputMode) {
                     answerInput.readOnly = true;
-                    // Dùng ID submit-button cho nút inline mới
-                    document.getElementById('submit-button').disabled = true;
+                    submitButton.disabled = true;
                 } else {
                     Array.from(optionsContainer.children).forEach(btn => btn.disabled = true);
                 }
@@ -492,7 +485,7 @@
                 inputModeContainer.classList.remove('hidden');
                 answerInput.value = ''; 
                 answerInput.readOnly = false; // Cho phép nhập liệu từ bàn phím vật lý
-                document.getElementById('submit-button').disabled = false;
+                submitButton.disabled = false;
                 gameModeDisplay.textContent = `Chế độ: NHẬP ĐÁP ÁN (${INPUT_MAX_TIME}s)`; // Cập nhật thời gian
                 gameModeDisplay.classList.remove('text-gray-600');
                 gameModeDisplay.classList.add('text-yellow-600', 'font-extrabold');
@@ -664,8 +657,8 @@
                 });
             } else if (isManualInputMode) {
                 answerInput.readOnly = true;
-                // Vô hiệu hóa nút inline submit
-                document.getElementById('submit-button').disabled = true;
+                // Vô hiệu hóa nút submit lớn
+                submitButton.disabled = true;
                 answerInput.classList.remove('border-yellow-500');
                 answerInput.classList.add(isCorrect ? 'border-green-600' : 'border-red-600');
             }
