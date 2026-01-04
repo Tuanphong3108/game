@@ -1,0 +1,465 @@
+<!DOCTYPE-html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Quiz - Phép Tính Siêu Tốc 🧠</title>
+    <!-- Tải Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tải Google Fonts - Google Sans Flex -->
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:wght@100..900&display=swap" rel="stylesheet">
+    <!-- Tải Material Symbols (Outline/Fill) -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    <style>
+        /* Tải Font Minecraft cho tiêu đề */
+        @font-face {
+            font-family: 'Minecraft';
+            src: url('https://tuanphong3108.github.io/google-sans-do-not-access/minecraft.tff') format('truetype');
+            font-weight: normal; 
+            font-style: normal;
+        }
+
+        /* Styling chung */
+        body {
+            font-family: 'Google Sans Flex', sans-serif;
+            background-color: #e0f2f1; /* Teal 50 */
+            color: #111827;
+            /* Giữ nguyên flex để căn giữa */
+            display: flex;
+            justify-content.center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* Hiệu ứng hover cho nút */
+        .option-button {
+            transition: all 0.2s;
+        }
+
+        .option-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            background-color: #2dd4bf; /* Teal 400 */
+        }
+
+        /* Hiệu ứng Material Symbols Outline/Fill */
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined:hover {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        /* Animation cho Feedback */
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateY(10px); }
+            10% { opacity: 1; transform: translateY(0); }
+            90% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-10px); }
+        }
+
+        #feedback-message {
+            animation: fadeInOut 2s ease-in-out;
+            pointer-events: none;
+        }
+
+        /* Styling cho Tiêu đề Minecraft */
+        .minecraft-title {
+            font-family: 'Minecraft', sans-serif;
+            text-shadow: 2px 2px 0 #3b82f6, 4px 4px 0 #1e3a8a; /* Blue shadow effect */
+            letter-spacing: 2px;
+        }
+
+        /* UPDATED: Tối đa hóa độ tròn và ĐỘ DÀY (BOLD) bằng font-variation-settings */
+        .text-rounded {
+            /* Chỉnh độ dày là 900 (MAX BOLD) và độ tròn tối đa là 100 */
+            font-variation-settings: 'wght' 900, 'ROND' 100; 
+            /* Thêm bóng nhẹ để làm nổi bật và tạo cảm giác căng bóng */
+            text-shadow: 
+                1px 1px 3px rgba(0, 0, 0, 0.2), /* Độ sâu */
+                0 0 8px rgba(255, 255, 255, 0.7); /* Ánh sáng mượt */
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <!-- Đã tăng độ tròn của container lên rounded-3xl -->
+    <div id="game-container" class="w-full max-w-5xl min-h-[90vh] p-6 md:p-10 bg-white shadow-2xl rounded-3xl border-b-4 border-teal-500 transform transition duration-500 hover:scale-[1.01]">
+        
+        <!-- Header & Score -->
+        <header class="text-center mb-8">
+            <h1 class="minecraft-title text-4xl md:text-5xl text-yellow-500 mb-2">
+                MATH GAME 🎮
+            </h1>
+            <p class="text-gray-600 font-semibold text-lg">Phép Tính Siêu Tốc</p>
+            
+            <!-- Đã tăng độ tròn của khung score/timer lên rounded-2xl -->
+            <div class="mt-4 flex justify-between items-center bg-gray-50 p-3 rounded-2xl shadow-inner">
+                <!-- Score & Timer Block -->
+                <div class="flex space-x-6">
+                    <span class="text-xl font-bold text-gray-700 flex items-center">
+                        <span class="material-symbols-outlined mr-2 text-teal-600">military_tech</span>
+                        Điểm: <span id="score" class="ml-2 text-teal-700 text-rounded">0</span>
+                    </span>
+                    <!-- New Timer Element -->
+                    <span class="text-xl font-bold flex items-center">
+                        <span class="material-symbols-outlined mr-2 text-red-600">timer</span>
+                        <span id="timer" class="text-red-700 font-extrabold text-rounded">15</span>s
+                    </span>
+                </div>
+                
+                <!-- Reset Button -->
+                <button onclick="startGame()" class="px-3 py-1 bg-blue-500 text-white font-medium rounded-full hover:bg-blue-600 transition duration-150 flex items-center">
+                    <span class="material-symbols-outlined text-sm mr-1">refresh</span>
+                    Làm mới
+                </button>
+            </div>
+        </header>
+
+        <!-- Problem Area -->
+        <div id="problem-area" class="text-center mb-8">
+            <div id="feedback-message" class="text-lg font-bold h-6 mb-4"></div>
+            <!-- Đã tăng độ tròn của khung phép tính lên rounded-3xl và áp dụng class mới -->
+            <p id="problem-text" class="text-5xl md:text-6xl font-extrabold text-gray-900 bg-teal-100 py-6 rounded-3xl shadow-md transition duration-300 text-rounded">
+                Loading...
+            </p>
+        </div>
+
+        <!-- Options -->
+        <div id="options-container" class="grid grid-cols-2 gap-4">
+            <!-- Các nút đáp án (chỉ còn 2) sẽ được chèn ở đây -->
+        </div>
+
+        <!-- Hidden Modal for Confirmation/Alerts -->
+        <div id="alert-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden items-center justify-center p-4 z-50">
+            <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full text-center">
+                <h3 id="modal-title" class="text-2xl font-bold mb-3 text-red-600">Lỗi!</h3>
+                <!-- Đã thay thế modal-message bằng container để chèn HTML (bao gồm điểm số được format) -->
+                <div id="modal-message-container" class="text-gray-700">
+                    <p>Có lỗi xảy ra.</p> <!-- Nội dung mặc định -->
+                </div>
+                <!-- Nút "Chơi lại" (New Game) -->
+                <button onclick="closeModal()" class="mt-4 px-4 py-2 bg-blue-500 text-white rounded-md font-medium hover:bg-blue-600 transition duration-150">Chơi lại</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const operations = ['+', '-', '*', '/'];
+        let correctResult = 0;
+        let score = 0;
+
+        // --- Timer Variables ---
+        const MAX_TIME = 15;
+        let timeLeft = MAX_TIME;
+        let timerInterval = null;
+        let isGameOver = false; // Flag mới để kiểm tra trạng thái thua cuộc
+        // --- End Timer Variables ---
+
+        const problemText = document.getElementById('problem-text');
+        const scoreElement = document.getElementById('score');
+        const optionsContainer = document.getElementById('options-container');
+        const feedbackMessage = document.getElementById('feedback-message');
+        const timerElement = document.getElementById('timer'); // Get the new timer element
+        const gameContainer = document.getElementById('game-container');
+
+        // --- Firebase/Auth Setup (Mandatory in Canvas, even if not used for data) ---
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        let auth, db, userId;
+
+        /**
+         * Hiển thị modal. Message giờ đây là nội dung HTML để format điểm số.
+         * @param {string} title 
+         * @param {string} contentHTML 
+         */
+        function showModal(title, contentHTML) {
+            // Dừng game khi modal hiển thị
+            if (timerInterval) {
+                clearInterval(timerInterval);
+            }
+
+            document.getElementById('modal-title').innerText = title;
+            // Dùng innerHTML để chèn nội dung có chứa styling điểm số
+            document.getElementById('modal-message-container').innerHTML = contentHTML;
+
+            document.getElementById('alert-modal').classList.remove('hidden');
+            document.getElementById('alert-modal').classList.add('flex');
+        }
+
+        function closeModal() {
+            document.getElementById('alert-modal').classList.remove('flex');
+            document.getElementById('alert-modal').classList.add('hidden');
+            
+            // Nếu game over (bất kể do sai hay hết giờ), thì bắt đầu game mới
+            if (isGameOver) {
+                 startGame();
+            }
+        }
+
+        async function initFirebase() {
+            try {
+                // We don't need Firestore/Auth for this simple game logic, but keeping the structure 
+                // ensures compliance with the Canvas environment's best practices.
+                console.log("Firebase setup skipped for this single-user game.");
+                userId = crypto.randomUUID(); // Use a placeholder UUID
+                startGame();
+            } catch (error) {
+                console.error("Error during Firebase initialization/Auth (expected for this environment if modules are missing):", error);
+                // Proceed with game initialization even if Firebase fails
+                startGame();
+            }
+        }
+        // --- End Firebase/Auth Setup ---
+        
+        /**
+         * Xử lý khi hết giờ
+         */
+        function handleTimeout() {
+            // Đảm bảo chỉ xử lý timeout một lần
+            if (timeLeft === 0 && !isGameOver) {
+                isGameOver = true;
+                // Vô hiệu hóa các nút
+                Array.from(optionsContainer.children).forEach(btn => btn.disabled = true);
+                
+                // Hiển thị thông báo hết giờ với điểm số được format
+                const timeOutMessage = `
+                    <p class="mb-4 text-gray-700">Bạn đã hết 15 giây. Hãy thử lại nhé!</p>
+                    <div class="text-center my-4">
+                        <span class="text-xl font-semibold text-gray-600 block mb-2">Điểm cuối cùng của bạn là:</span>
+                        <span class="text-6xl font-extrabold text-red-600 block text-rounded">${score}</span>
+                    </div>
+                `;
+                showModal("Hết giờ rồi! ⏳", timeOutMessage);
+            }
+        }
+
+        /**
+         * Xử lý khi trả lời sai (Game Over ngay lập tức)
+         */
+        function gameOver() {
+            if (!isGameOver) {
+                isGameOver = true;
+                if (timerInterval) {
+                    clearInterval(timerInterval);
+                }
+                // Vô hiệu hóa các nút
+                Array.from(optionsContainer.children).forEach(btn => btn.disabled = true);
+                
+                // Hiển thị thông báo Game Over với điểm số được format
+                const gameOverMessage = `
+                    <p class="mb-4 text-gray-700">Rất tiếc, bạn đã trả lời sai. Hãy thử lại nhé!</p>
+                    <div class="text-center my-4">
+                        <span class="text-xl font-semibold text-gray-600 block mb-2">Điểm cuối cùng của bạn là:</span>
+                        <span class="text-6xl font-extrabold text-red-600 block text-rounded">${score}</span>
+                    </div>
+                `;
+                showModal("GAME OVER! 💀", gameOverMessage);
+            }
+        }
+
+        /**
+         * Reset và Bắt đầu Timer
+         */
+        function resetAndStartTimer() {
+            // 1. Clear existing timer
+            if (timerInterval) {
+                clearInterval(timerInterval);
+            }
+
+            // 2. Reset time
+            timeLeft = MAX_TIME;
+            timerElement.textContent = timeLeft;
+            timerElement.classList.remove('text-yellow-600', 'text-red-600');
+            timerElement.classList.add('text-red-700'); // Default color
+
+            // 3. Start new interval
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timerElement.textContent = timeLeft;
+
+                // Cảnh báo khi thời gian còn ít
+                if (timeLeft <= 5 && timeLeft > 0) {
+                    timerElement.classList.remove('text-red-700');
+                    timerElement.classList.add('text-yellow-600');
+                }
+                
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    timeLeft = 0;
+                    handleTimeout();
+                }
+            }, 1000);
+        }
+
+        /**
+         * Tạo số ngẫu nhiên trong khoảng [min, max]
+         * @param {number} min 
+         * @param {number} max 
+         * @returns {number}
+         */
+        function getRandomInt(min, max) {
+            min = Math.ceil(min);
+            max = Math.floor(max);
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        /**
+         * Tạo một bài toán mới và đảm bảo yêu cầu số nguyên cho phép chia.
+         */
+        function generateProblem() {
+            const operator = operations[getRandomInt(0, 3)];
+            let num1, num2;
+            let problemString;
+
+            // Số sẽ dao động từ 1 đến 20 để giữ cho bài toán vừa sức
+            const range = 20;
+
+            if (operator === '/') {
+                // Logic ĐẶC BIỆT cho Phép Chia: Đảm bảo kết quả là số nguyên
+                do {
+                    // Tạo kết quả (thương) Q trước, từ 2 đến 10
+                    const Q = getRandomInt(2, 10); 
+                    // Tạo số chia D (num2), từ 2 đến 10
+                    num2 = getRandomInt(2, 10);
+                    // Tính số bị chia (num1) = Q * D
+                    num1 = Q * num2;
+                } while (num2 === 0); // Đảm bảo số chia không phải là 0
+                
+                correctResult = num1 / num2; // Luôn là số nguyên
+            } else if (operator === '-') {
+                // [UPDATED] Logic cho Phép Trừ: Cho phép kết quả là số âm
+                num1 = getRandomInt(1, range * 2); 
+                num2 = getRandomInt(1, range * 2);
+                correctResult = num1 - num2; // Kết quả có thể là số âm
+            } else {
+                // Logic cho Phép Cộng và Nhân
+                num1 = getRandomInt(1, range);
+                num2 = getRandomInt(1, range);
+                
+                switch (operator) {
+                    case '+':
+                        correctResult = num1 + num2;
+                        break;
+                    case '*':
+                        // Giới hạn số nhỏ hơn cho nhân
+                        num1 = getRandomInt(1, 10);
+                        num2 = getRandomInt(1, 10);
+                        correctResult = num1 * num2;
+                        break;
+                }
+            }
+
+            problemString = `${num1} ${operator} ${num2} = ?`;
+            problemText.textContent = problemString;
+
+            generateOptions();
+            resetAndStartTimer(); // Khởi động lại Timer cho câu hỏi mới
+        }
+
+        /**
+         * Tạo 2 đáp án (1 đúng, 1 sai)
+         */
+        function generateOptions() {
+            const options = new Set();
+            options.add(correctResult);
+
+            // Tạo các đáp án sai gần với đáp án đúng (chỉ cần 1 đáp án sai)
+            while (options.size < 2) { 
+                let incorrectAnswer;
+                // Tạo đáp án sai bằng cách dịch chuyển đáp án đúng +/- 1 đến 5 đơn vị
+                const deviation = getRandomInt(1, 5) * (Math.random() > 0.5 ? 1 : -1);
+                incorrectAnswer = correctResult + deviation;
+
+                // [UPDATED] Đảm bảo đáp án sai không trùng với đáp án đúng/đáp án đã có
+                if (!options.has(incorrectAnswer)) {
+                    options.add(incorrectAnswer);
+                }
+            }
+
+            // Chuyển Set sang Array và xáo trộn
+            let optionArray = Array.from(options);
+            optionArray.sort(() => Math.random() - 0.5);
+
+            renderOptions(optionArray);
+        }
+
+        /**
+         * Render các nút đáp án ra giao diện (chỉ render 2 nút).
+         * @param {Array<number>} options 
+         */
+        function renderOptions(options) {
+            optionsContainer.innerHTML = '';
+            // Chỉ sử dụng nhãn A và B
+            const labels = ['A', 'B']; 
+
+            options.forEach((optionValue, index) => {
+                const button = document.createElement('button');
+                button.textContent = `${labels[index]}. ${optionValue}`;
+                button.value = optionValue;
+                // [UPDATED] Thêm flex để căn giữa nội dung và icon
+                button.className = 'option-button text-xl font-bold p-4 bg-teal-500 text-white rounded-full shadow-md hover:bg-teal-600 transition duration-150 flex items-center justify-center';
+                button.onclick = () => checkAnswer(optionValue, button);
+                optionsContainer.appendChild(button);
+            });
+        }
+
+        /**
+         * Kiểm tra đáp án người dùng chọn.
+         * @param {number} chosenValue 
+         * @param {HTMLButtonElement} button 
+         */
+        function checkAnswer(chosenValue, button) {
+            // Dừng timer ngay lập tức
+            if (timerInterval) {
+                clearInterval(timerInterval);
+            }
+            
+            // Vô hiệu hóa tất cả các nút để tránh click kép
+            Array.from(optionsContainer.children).forEach(btn => btn.disabled = true);
+
+            const isCorrect = (chosenValue === correctResult);
+            let delayTimeout = 1000;
+
+            // --- 1. Apply Styles & Icons to ALL buttons ---
+            Array.from(optionsContainer.children).forEach(btn => {
+                const btnValue = parseInt(btn.value);
+                
+                // Xóa các class mặc định
+                btn.classList.remove('bg-teal-500', 'hover:bg-teal-600');
+                
+                if (btnValue === correctResult) {
+                    // Đây là đáp án đúng -> Luôn xanh, có icon CHECK
+                    btn.classList.add('bg-green-600', 'shadow-xl'); 
+                    btn.innerHTML = `<span class="material-symbols-outlined text-lg mr-2">done</span>${btn.textContent}`;
+                } else if (btnValue === chosenValue) {
+                    // Đây là nút đã chọn (và nó sai) -> Đỏ, có icon CLOSE
+                    btn.classList.add('bg-red-600', 'shadow-xl'); 
+                    btn.innerHTML = `<span class="material-symbols-outlined text-lg mr-2">close</span>${btn.textContent}`;
+                } else {
+                    // Các nút sai khác (Không được chọn) -> Làm mờ
+                    btn.classList.add('bg-gray-400', 'opacity-70'); 
+                }
+            });
+            
+            // --- 2. Handle Game State & Feedback ---
+
+            if (isCorrect) {
+                score++;
+                scoreElement.textContent = score; // Cập nhật điểm ngay lập tức
+                displayFeedback('Chính xác! 🎉', 'text-green-600');
+                
+                // Flash problem text green
+                problemText.classList.remove('bg-teal-100');
+                problemText.classList.add('bg-green-200', 'animate-pulse');
+
+                // Chờ 1 giây rồi tạo bài toán mới
+                setTimeout(() => {
+                    problemText.classList.remove('bg-green-200', 'animate-pulse');
+                    problemText.classList.add('bg-teal-100');
+                    generateProblem();
+                }, delayTimeout); 
+
+            } else 
