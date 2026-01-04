@@ -198,7 +198,7 @@
             <!-- Submit Button: Scale up on large screens -->
             <button id="submit-button" onclick="submitAnswer()"
                     class="mt-4 w-full py-3 md:py-6 bg-teal-500 text-white font-bold text-xl md:text-3xl rounded-2xl shadow-xl hover:bg-teal-600 transition duration-150 flex items-center justify-center">
-                <span class="material-symbols-outlined mr-2 md:text-3xl">send</span> GỬI ĐÁP ÁN
+                <span class="material-symbols-outlined mr-2 md:text-3xl">send</span> GỬI ĐÁP ÁN (ENTER)
             </button>
         </div>
 
@@ -239,6 +239,9 @@
         let timeLeft = MAX_TIME;
         let timerInterval = null;
         let isGameOver = false; 
+
+        // Global map to store key-to-option mapping for MC mode (1 or 2 key)
+        let optionKeyMap = {}; 
         // --- Kết thúc Trạng thái trò chơi ---
 
         // Các phần tử giao diện
@@ -253,6 +256,39 @@
         const questionCountDisplay = document.getElementById('question-count-display');
         const gameModeDisplay = document.getElementById('game-mode-display');
         const loadingOverlay = document.getElementById('loading-overlay');
+
+        /**
+         * Xử lý đầu vào từ bàn phím (hotkey cho MC và Enter cho Input)
+         */
+        function handleKeyboardInput(event) {
+            if (isGameOver) return;
+
+            const key = event.key;
+
+            if (!isManualInputMode) {
+                // --- MC Mode: Hotkey 1 và 2 ---
+                if (key === '1' || key === '2') {
+                    event.preventDefault(); 
+                    const chosenValue = optionKeyMap[key];
+                    if (chosenValue !== undefined) {
+                        // Tìm nút tương ứng để kích hoạt
+                        const buttonToClick = Array.from(optionsContainer.children).find(
+                            btn => parseInt(btn.value) === chosenValue
+                        );
+                        if (buttonToClick) {
+                            checkAnswer(chosenValue, buttonToClick);
+                        }
+                    }
+                }
+            } else {
+                // --- Input Mode: Enter để gửi ---
+                if (key === 'Enter') {
+                    event.preventDefault(); 
+                    submitAnswer();
+                }
+            }
+        }
+
 
         /**
          * Hiển thị lớp phủ loading và reload trang.
@@ -288,6 +324,10 @@
                 livesDisplay.textContent = lives;
                 feedbackMessage.textContent = '';
                 isGameOver = false; 
+                optionKeyMap = {};
+
+                // Thêm sự kiện lắng nghe bàn phím
+                window.addEventListener('keydown', handleKeyboardInput);
 
                 generateProblem(); 
 
@@ -539,11 +579,23 @@
         /** Render các nút đáp án trắc nghiệm */
         function renderOptions(options) {
             optionsContainer.innerHTML = '';
-            const labels = ['A', 'B']; 
+            const labels = ['1', '2']; 
+            optionKeyMap = {}; // Reset map
 
             options.forEach((optionValue, index) => {
+                const keyLabel = labels[index];
+                optionKeyMap[keyLabel] = optionValue; // Lưu key mapping
+
                 const button = document.createElement('button');
-                button.textContent = `${labels[index]}. ${optionValue}`;
+                
+                // Hiển thị ô vuông với số 1 hoặc 2 cho hotkey
+                button.innerHTML = `
+                    <span class="inline-flex items-center justify-center h-8 w-8 bg-white text-teal-600 rounded-lg mr-3 shadow-inner border-2 border-teal-600 text-sm font-extrabold text-rounded">
+                        ${keyLabel}
+                    </span> 
+                    ${optionValue}
+                `;
+
                 button.value = optionValue;
                 // Text size md:text-2xl để ổn định trên desktop
                 button.className = 'option-button text-xl md:text-2xl font-bold p-4 bg-teal-500 text-white rounded-full shadow-md hover:bg-teal-600 transition duration-150 flex items-center justify-center';
@@ -568,15 +620,19 @@
             if (!isManualInputMode && button) {
                 Array.from(optionsContainer.children).forEach(btn => {
                     const btnValue = parseInt(btn.value);
-                    const originalText = btn.textContent;
+                    const originalHTML = btn.innerHTML;
+                    
+                    // Lấy lại phần văn bản (loại bỏ ô vuông hotkey)
+                    const textContent = originalHTML.substring(originalHTML.indexOf('</span>') + 7).trim();
+                    
                     btn.classList.remove('bg-teal-500', 'hover:bg-teal-600');
                     
                     if (btnValue === correctResult) {
                         btn.classList.add('bg-green-600', 'shadow-xl'); 
-                        btn.innerHTML = `<span class="material-symbols-outlined text-lg mr-2">done</span>${originalText}`;
+                        btn.innerHTML = originalHTML.replace(textContent, `<span class="material-symbols-outlined text-lg mr-2">done</span>${textContent}`);
                     } else if (btn === button) {
                         btn.classList.add('bg-red-600', 'shadow-xl'); 
-                        btn.innerHTML = `<span class="material-symbols-outlined text-lg mr-2">close</span>${originalText}`;
+                        btn.innerHTML = originalHTML.replace(textContent, `<span class="material-symbols-outlined text-lg mr-2">close</span>${textContent}`);
                     } else {
                         btn.classList.add('bg-gray-400', 'opacity-70'); 
                     }
