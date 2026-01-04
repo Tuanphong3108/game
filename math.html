@@ -16,11 +16,13 @@
             font-family: 'Google Sans Flex', sans-serif;
             background-color: #e0f2f1; /* Teal 50 */
             color: #111827;
+            /* Căn giữa tuyệt đối */
             display: flex;
             justify-content.center;
             align-items: center;
             min-height: 100vh;
-            padding: 12px;
+            /* Loại bỏ padding để container có thể chiếm full-height */
+            padding: 0; 
         }
 
         /* Hiệu ứng hover cho nút */
@@ -75,8 +77,8 @@
 </head>
 <body class="bg-gray-100">
 
-    <!-- Tăng max-w lên 7xl cho PC và màn hình ngang rộng -->
-    <div id="game-container" class="w-full max-w-xl lg:max-w-7xl min-h-[90vh] p-4 md:p-10 bg-white shadow-2xl rounded-3xl border-b-4 border-teal-500">
+    <!-- Tăng max-w lên 7xl cho PC và màn hình ngang rộng, dùng min-h-screen để full-page chiều cao -->
+    <div id="game-container" class="w-full max-w-xl lg:max-w-7xl min-h-screen p-4 md:p-10 bg-white shadow-2xl rounded-3xl border-b-4 border-teal-500">
         
         <!-- Header & Score -->
         <header class="text-center mb-6 md:mb-8">
@@ -585,4 +587,3 @@
     </script>
 </body>
 </html>
-
