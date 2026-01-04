@@ -592,8 +592,7 @@
                 button.innerHTML = `
                     <span class="inline-flex items-center justify-center h-8 w-8 bg-white text-teal-600 rounded-lg mr-3 shadow-inner border-2 border-teal-600 text-sm font-extrabold text-rounded">
                         ${keyLabel}
-                    </span> 
-                    ${optionValue}
+                    </span> ${optionValue}
                 `;
 
                 button.value = optionValue;
@@ -622,21 +621,36 @@
                     const btnValue = parseInt(btn.value);
                     const originalHTML = btn.innerHTML;
                     
-                    // Lấy lại phần văn bản (loại bỏ ô vuông hotkey)
-                    const textContent = originalHTML.substring(originalHTML.indexOf('</span>') + 7).trim();
+                    // --- BẮT ĐẦU FIX BUG REBUILD HTML ---
+                    // 1. Tách phần hotkey span (ví dụ: <span...>1</span>)
+                    const hotkeySpanEnd = originalHTML.indexOf('</span>');
+                    if (hotkeySpanEnd === -1) return; 
+                    const hotkeyPrefix = originalHTML.substring(0, hotkeySpanEnd + 7); // Bao gồm </span>
+
+                    let iconHTML = '';
                     
+                    // Loại bỏ style cũ và vô hiệu hóa nút
                     btn.classList.remove('bg-teal-500', 'hover:bg-teal-600');
-                    
+                    btn.disabled = true; 
+
                     if (btnValue === correctResult) {
                         btn.classList.add('bg-green-600', 'shadow-xl'); 
-                        btn.innerHTML = originalHTML.replace(textContent, `<span class="material-symbols-outlined text-lg mr-2">done</span>${textContent}`);
+                        iconHTML = `<span class="material-symbols-outlined text-lg mr-2">done</span>`;
                     } else if (btn === button) {
+                        // Đây là nút người dùng vừa bấm
                         btn.classList.add('bg-red-600', 'shadow-xl'); 
-                        btn.innerHTML = originalHTML.replace(textContent, `<span class="material-symbols-outlined text-lg mr-2">close</span>${textContent}`);
+                        iconHTML = `<span class="material-symbols-outlined text-lg mr-2">close</span>`;
                     } else {
+                        // Đây là nút đáp án sai khác (không được bấm)
                         btn.classList.add('bg-gray-400', 'opacity-70'); 
+                        // Không có icon
                     }
-                    btn.disabled = true; 
+
+                    // Rebuild: Hotkey Span + Space + Icon (if any) + Numeric Value
+                    // Đảm bảo không còn lỗi lặp nội dung.
+                    btn.innerHTML = `${hotkeyPrefix} ${iconHTML}${btnValue}`;
+                    // --- KẾT THÚC FIX BUG REBUILD HTML ---
+
                 });
             } else if (isManualInputMode) {
                 answerInput.readOnly = true;
