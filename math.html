@@ -11,7 +11,7 @@
     <!-- Tải Material Symbols (Outline/Fill) -->
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
     <style>
-        /* Styling chung - Đã loại bỏ Font Minecraft */
+        /* Styling chung */
         body {
             /* Dùng chung Google Sans Flex cho toàn bộ trang */
             font-family: 'Google Sans Flex', sans-serif;
@@ -84,7 +84,6 @@
         
         <!-- Header & Score -->
         <header class="text-center mb-8">
-            <!-- Đã thay thế class minecraft-title bằng title-styled dựa trên Google Sans Flex -->
             <h1 class="title-styled text-4xl md:text-5xl text-yellow-500 mb-2">
                 MATH GAME 🎮
             </h1>
@@ -298,49 +297,38 @@
         }
 
         /**
-         * Tạo một bài toán mới và đảm bảo yêu cầu số nguyên cho phép chia.
+         * Tạo một bài toán mới với kết quả lên đến hàng trăm.
          */
         function generateProblem() {
             const operator = operations[getRandomInt(0, 3)];
             let num1, num2;
             let problemString;
 
-            // Số sẽ dao động từ 1 đến 40
-            const range = 40;
+            // Tăng Range cơ bản để kết quả có thể lên đến hàng trăm (tối đa ~400)
+            const range = 100; 
 
             if (operator === '/') {
-                // Logic ĐẶC BIỆT cho Phép Chia: Đảm bảo kết quả là số nguyên
-                do {
-                    // Tạo kết quả (thương) Q trước, từ 2 đến 10
-                    const Q = getRandomInt(2, 10); 
-                    // Tạo số chia D (num2), từ 2 đến 10
-                    num2 = getRandomInt(2, 10);
-                    // Tính số bị chia (num1) = Q * D
-                    num1 = Q * num2;
-                } while (num2 === 0); // Đảm bảo số chia không phải là 0
-                
-                correctResult = num1 / num2; 
+                // Phép Chia: Kết quả (Q) lên đến 20
+                const Q = getRandomInt(2, 20); 
+                // Số chia (D) từ 2 đến 20
+                num2 = getRandomInt(2, 20);
+                num1 = Q * num2;
+                correctResult = num1 / num2; // Kết quả là số nguyên từ 2 đến 20
             } else if (operator === '-') {
-                // Logic cho Phép Trừ: Cho phép kết quả là số âm
-                num1 = getRandomInt(1, range * 2); 
-                num2 = getRandomInt(1, range * 2);
-                correctResult = num1 - num2; 
-            } else {
-                // Logic cho Phép Cộng và Nhân
+                // Phép Trừ: Cho phép kết quả là số âm và lớn.
+                num1 = getRandomInt(1, range * 2); // 1 đến 200
+                num2 = getRandomInt(1, range * 2); // 1 đến 200
+                correctResult = num1 - num2; // Kết quả từ -199 đến 199
+            } else if (operator === '+') {
+                // Phép Cộng: Kết quả lên đến 200
                 num1 = getRandomInt(1, range);
                 num2 = getRandomInt(1, range);
-                
-                switch (operator) {
-                    case '+':
-                        correctResult = num1 + num2;
-                        break;
-                    case '*':
-                        // Giới hạn số nhỏ hơn cho nhân
-                        num1 = getRandomInt(1, 10);
-                        num2 = getRandomInt(1, 10);
-                        correctResult = num1 * num2;
-                        break;
-                }
+                correctResult = num1 + num2; // Kết quả từ 2 đến 200
+            } else if (operator === '*') {
+                // Phép Nhân: Kết quả lên đến 400
+                num1 = getRandomInt(1, 20);
+                num2 = getRandomInt(1, 20);
+                correctResult = num1 * num2; // Kết quả từ 1 đến 400
             }
 
             problemString = `${num1} ${operator} ${num2} = ?`;
@@ -351,17 +339,22 @@
         }
 
         /**
-         * Tạo 2 đáp án (1 đúng, 1 sai)
+         * Tạo 2 đáp án (1 đúng, 1 sai) với sai số lớn.
          */
         function generateOptions() {
             const options = new Set();
             options.add(correctResult);
 
-            // Tạo các đáp án sai gần với đáp án đúng (chỉ cần 1 đáp án sai)
+            // Tạo các đáp án sai theo yêu cầu: [đáp án đúng] + (random -100, 100)
             while (options.size < 2) { 
                 let incorrectAnswer;
-                // Tạo đáp án sai bằng cách dịch chuyển đáp án đúng +/- 1 đến 5 đơn vị
-                const deviation = getRandomInt(1, 5) * (Math.random() > 0.5 ? 1 : -1);
+                
+                // Random deviation từ -100 đến 100, nhưng không được là 0
+                let deviation = 0;
+                while (deviation === 0) {
+                    deviation = getRandomInt(-100, 100);
+                }
+                
                 incorrectAnswer = correctResult + deviation;
 
                 // Đảm bảo đáp án sai không trùng với đáp án đúng/đáp án đã có
@@ -441,7 +434,7 @@
 
             if (isCorrect) {
                 score++;
-                scoreElement.textContent = score; // Cập nhật điểm ngay lập tức
+                scoreElement.textContent = score; // Cập nhật điểm ngay lập lập tức
                 displayFeedback('Chính xác! 🎉', 'text-green-600');
                 
                 // Flash problem text green
