@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cá Ngựa MD3</title>
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --md-sys-color-primary: #6750A4;
+            --md-sys-color-surface: #FEF7FF;
+            --red: #B3261E; --green: #2E6C00; --yellow: #D29100; --blue: #0061A4;
+        }
+
+        body {
+            font-family: 'Google Sans Flex', sans-serif;
+            background-color: #f4f2f7;
+            margin: 0; padding: 0;
+            display: flex; height: 100dvh; width: 100vw; overflow: hidden;
+            transition: background-color 0.2s;
+        }
+
+        /* --- STYLES CHO HOVER ICON --- */
+        .material-symbols-outlined { transition: font-variation-settings 0.2s; }
+        button:hover .material-symbols-outlined, 
+        .stat-card:hover .material-symbols-outlined {
+            font-variation-settings: 'FILL' 1;
+        }
+
+        /* --- RIPPLE EFFECT --- */
+        .ripple { position: relative; overflow: hidden; }
+        .ripple-effect {
+            position: absolute; border-radius: 50%; background: rgba(255, 255, 255, 0.4);
+            transform: scale(0); animation: ripple-anim 0.6s linear; pointer-events: none;
+        }
+        @keyframes ripple-anim { to { transform: scale(4); opacity: 0; } }
+
+        /* --- MÀN HÌNH KHỞI ĐẦU --- */
+        #start-screen {
+            position: fixed; inset: 0; background: var(--md-sys-color-surface); z-index: 4000;
+            display: flex; flex-col; justify-content: center; align-items: center; padding: 24px;
+            transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        
+        .pill-input {
+            width: 120px; text-align: center; font-weight: 900; font-size: 14px;
+            border: 2px solid transparent; transition: all 0.2s;
+        }
+        .pill-input:focus { transform: scale(1.05); }
+
+        /* --- LEFT & RIGHT SIDEBAR --- */
+        #left-sidebar {
+            width: 100px; background: white; border-right: 1px solid #e0e0e0;
+            display: flex; flex-direction: column; align-items: center; padding: 24px 0; gap: 32px;
+            z-index: 100; flex-shrink: 0;
+        }
+
+        #right-sidebar {
+            width: 260px; background: white; border-left: 1px solid #e0e0e0;
+            display: flex; flex-direction: column; padding: 24px; gap: 16px;
+            z-index: 100; flex-shrink: 0;
+        }
+
+        #game-view { flex: 1; display: flex; justify-content: center; align-items: center; background: var(--md-sys-color-surface); padding: 16px; position: relative; }
+
+        #board-container { position: relative; padding: 20px; }
+
+        #board {
+            display: grid; grid-template-columns: repeat(15, 1fr); grid-template-rows: repeat(15, 1fr);
+            gap: 1.5px; background-color: #e0e0e0; border: 12px solid #fff; border-radius: 40px;
+            box-shadow: 0 32px 64px rgba(0,0,0,0.12);
+            aspect-ratio: 1/1; width: min(85vw, 85vh); height: min(85vw, 85vh);
+            position: relative; overflow: visible;
+        }
+
+        .cell { background-color: #fff; display: flex; justify-content: center; align-items: center; position: relative; width: 100%; height: 100%; transition: background-color 0.3s; }
+        
+        .cell.target-hint::before {
+            content: ""; width: 14px; height: 14px; border-radius: 50%; background: var(--md-sys-color-primary); opacity: 0.4; animation: pulse 1s infinite;
+        }
+
+        .cell.path-highlight { background-color: rgba(103, 80, 164, 0.12) !important; }
+
+        @keyframes pulse { 0% { transform: scale(0.8); opacity: 0.2; } 50% { transform: scale(1.3); opacity: 0.6; } 100% { transform: scale(0.8); opacity: 0.2; } }
+
+        .safe-zone::after {
+            content: "star"; font-family: 'Material Symbols Outlined';
+            font-size: 1.2rem; color: #ffd700; opacity: 0.4;
+            font-variation-settings: 'FILL' 1;
+        }
+
+        .piece {
+            width: 80%; height: 80%; border-radius: 50%;
+            aspect-ratio: 1/1; position: absolute; z-index: 20;
+            border: 2px solid rgba(255,255,255,0.8);
+            display: flex; justify-content: center; align-items: center;
+            color: white; font-weight: 700; font-size: 14px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            cursor: pointer; user-select: none;
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .piece.moving { transition: all 0.1s ease-out !important; z-index: 1000; box-shadow: 0 12px 24px rgba(0,0,0,0.4); }
+
+        .piece.active {
+            animation: bounce 0.6s infinite alternate cubic-bezier(0.45, 0.05, 0.55, 0.95);
+            z-index: 50; border: 3px solid #fff; box-shadow: 0 0 15px rgba(255,255,255,0.8);
+        }
+
+        @keyframes bounce { from { transform: scale(1.0); } to { transform: scale(1.15) translateY(-15%); } }
+
+        /* --- SWITCH MD3 OVERSHOOT (Chuẩn bài Bro Phong) --- */
+        .m3-switch { width: 52px; height: 32px; position: relative; display: inline-block; flex-shrink: 0; }
+        .m3-switch input { opacity: 0; width: 0; height: 0; }
+        .m3-switch .slider {
+            position: absolute; cursor: pointer; inset: 0; background: #E7E0EC;
+            border: 2px solid #79747E; border-radius: 32px; 
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+        .m3-switch .thumb {
+            position: absolute; height: 24px; width: 24px; left: 2px; bottom: 2px;
+            background: #79747E; border-radius: 50%; 
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1.2), background-color 0.3s; /* Overshoot physics */
+            display: flex; align-items: center; justify-content: center; color: #E7E0EC;
+        }
+        .m3-switch input:checked + .slider { background: var(--md-sys-color-primary); border-color: var(--md-sys-color-primary); }
+        .m3-switch input:checked + .slider .thumb { transform: translateX(20px); background: white; color: var(--md-sys-color-primary); }
+        
+        .m3-switch .icon-check { display: none; }
+        .m3-switch input:checked + .slider .icon-dash { display: none; }
+        .m3-switch input:checked + .slider .icon-check { display: block; }
+
+        /* --- XÚC XẮC --- */
+        .dice-container { width: 80px; height: 80px; position: relative; }
+        .dice-box {
+            position: absolute; inset: 0; border-radius: 24px; background: #fff;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.08); border: 1px solid #eee;
+            display: flex; justify-content: center; align-items: center; 
+            cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+        }
+        .dice-box:hover { transform: translateY(-4px); box-shadow: 0 12px 20px rgba(0,0,0,0.12); }
+        
+        #dice-face { font-size: 3.5rem; transition: opacity 0.3s, transform 0.3s; }
+        #dice-number { 
+            position: absolute; font-size: 2.5rem; font-weight: 900; 
+            color: var(--md-sys-color-primary); opacity: 0; transform: scale(0.5);
+            transition: opacity 0.3s, transform 0.3s;
+        }
+
+        .dice-box.show-number #dice-face { opacity: 0; transform: scale(1.5) rotate(15deg); }
+        .dice-box.show-number #dice-number { opacity: 1; transform: scale(1); }
+
+        .stat-card {
+            padding: 16px; border-radius: 28px; border: 1px solid #f0f0f0;
+            background: #fff; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .stat-card.active { border-color: var(--md-sys-color-primary); box-shadow: 0 16px 32px rgba(103, 80, 164, 0.15); transform: scale(1.05); }
+
+        /* --- HIỆU ỨNG THẮNG / THUA / NHÁY ĐÈN --- */
+        #victory-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(8px);
+            z-index: 3000; display: flex; justify-content: center; align-items: center;
+            opacity: 0; pointer-events: none; transition: opacity 0.5s;
+        }
+        #victory-overlay.visible { opacity: 1; pointer-events: auto; }
+        .victory-card {
+            background: white; padding: 40px; border-radius: 48px; text-align: center;
+            box-shadow: 0 24px 48px rgba(0,0,0,0.2); transform: translateY(40px);
+            transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            max-width: 400px; width: 90%;
+        }
+        #victory-overlay.visible .victory-card { transform: translateY(0); }
+
+        @keyframes shake-board {
+            0%, 100% { transform: translate(0, 0); }
+            10%, 30%, 50%, 70%, 90% { transform: translate(-6px, 3px); }
+            20%, 40%, 60%, 80% { transform: translate(6px, -3px); }
+        }
+        .shake { animation: shake-board 0.4s ease-in-out; }
+        .flash-red { background-color: #ff000044 !important; }
+
+        #loading-overlay {
+            position: fixed; inset: 0; background: rgba(255,255,255,0.9); z-index: 6000;
+            display: flex; justify-content: center; align-items: center; backdrop-filter: blur(8px);
+            transition: opacity 0.5s;
+        }
+        #loading-overlay.hidden { opacity: 0; pointer-events: none; }
+    </style>
+</head>
+<body>
+
+    <!-- LOADING SCREEN -->
+    <div id="loading-overlay">
+        <!-- Đã dùng link gif tĩnh của bro, bỏ màu = grayscale, mix-blend -->
+        <img src="https://tuanphong3108.github.io/md3-loading/Loading_Indicator.gif" alt="Loading" class="mix-blend-multiply grayscale contrast-125 w-24">
+    </div>
+
+    <!-- START SCREEN (CẤU HÌNH TRẬN ĐẤU) -->
+    <div id="start-screen" class="flex flex-col">
+        <span class="material-symbols-outlined text-6xl text-[#6750A4] mb-4">casino</span>
+        <h1 class="text-4xl font-black mb-2 text-[#6750A4]">THIẾT LẬP BÀN CỜ</h1>
+        <p class="text-gray-500 mb-8 font-medium">Sửa tên đội hoặc gạt công tắc để bot đánh hộ.</p>
+        
+        <div class="flex flex-col gap-3 w-full max-w-lg bg-white p-6 rounded-[32px] shadow-2xl border border-gray-100">
+            <!-- ĐỘI XANH LÁ -->
+            <div class="flex items-center justify-between gap-4 p-3 rounded-2xl bg-[#F0F7EB]">
+                <input type="text" id="name-green" value="GREEN" class="pill-input bg-[#2E6C00] text-white px-4 py-2 rounded-full focus:ring-4 ring-green-300 outline-none uppercase shadow-md">
+                <div class="flex items-center gap-3">
+                    <span class="text-[11px] font-black text-[#2E6C00] uppercase tracking-widest opacity-80">Computer Play</span>
+                    <label class="m3-switch">
+                        <input type="checkbox" id="bot-green">
+                        <span class="slider">
+                            <span class="thumb">
+                                <span class="material-symbols-outlined text-[14px] icon-dash font-bold">horizontal_rule</span>
+                                <span class="material-symbols-outlined text-[14px] icon-check font-bold">check</span>
+                            </span>
+                        </span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- ĐỘI ĐỎ -->
+            <div class="flex items-center justify-between gap-4 p-3 rounded-2xl bg-[#FFF1F0]">
+                <input type="text" id="name-red" value="RED" class="pill-input bg-[#B3261E] text-white px-4 py-2 rounded-full focus:ring-4 ring-red-300 outline-none uppercase shadow-md">
+                <div class="flex items-center gap-3">
+                    <span class="text-[11px] font-black text-[#B3261E] uppercase tracking-widest opacity-80">Computer Play</span>
+                    <label class="m3-switch">
+                        <input type="checkbox" id="bot-red" checked> <!-- Mặc định bot -->
+                        <span class="slider">
+                            <span class="thumb">
+                                <span class="material-symbols-outlined text-[14px] icon-dash font-bold">horizontal_rule</span>
+                                <span class="material-symbols-outlined text-[14px] icon-check font-bold">check</span>
+                            </span>
+                        </span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- ĐỘI VÀNG -->
+            <div class="flex items-center justify-between gap-4 p-3 rounded-2xl bg-[#FFF9E6]">
+                <input type="text" id="name-yellow" value="YELLOW" class="pill-input bg-[#D29100] text-white px-4 py-2 rounded-full focus:ring-4 ring-yellow-300 outline-none uppercase shadow-md">
+                <div class="flex items-center gap-3">
+                    <span class="text-[11px] font-black text-[#D29100] uppercase tracking-widest opacity-80">Computer Play</span>
+                    <label class="m3-switch">
+                        <input type="checkbox" id="bot-yellow" checked>
+                        <span class="slider">
+                            <span class="thumb">
+                                <span class="material-symbols-outlined text-[14px] icon-dash font-bold">horizontal_rule</span>
+                                <span class="material-symbols-outlined text-[14px] icon-check font-bold">check</span>
+                            </span>
+                        </span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- ĐỘI XANH DƯƠNG -->
+            <div class="flex items-center justify-between gap-4 p-3 rounded-2xl bg-[#EAF2FF]">
+                <input type="text" id="name-blue" value="BLUE" class="pill-input bg-[#0061A4] text-white px-4 py-2 rounded-full focus:ring-4 ring-blue-300 outline-none uppercase shadow-md">
+                <div class="flex items-center gap-3">
+                    <span class="text-[11px] font-black text-[#0061A4] uppercase tracking-widest opacity-80">Computer Play</span>
+                    <label class="m3-switch">
+                        <input type="checkbox" id="bot-blue" checked>
+                        <span class="slider">
+                            <span class="thumb">
+                                <span class="material-symbols-outlined text-[14px] icon-dash font-bold">horizontal_rule</span>
+                                <span class="material-symbols-outlined text-[14px] icon-check font-bold">check</span>
+                            </span>
+                        </span>
+                    </label>
+                </div>
+            </div>
+        </div>
+        
+        <button onclick="startGameFromMenu()" class="mt-8 px-16 py-4 bg-[#6750A4] text-white rounded-full font-black text-lg shadow-xl hover:brightness-110 active:scale-[0.97] transition-all ripple">
+            BẮT ĐẦU CHIẾN
+        </button>
+    </div>
+
+    <!-- VICTORY SCREEN -->
+   <div id="victory-overlay">
+        <div class="victory-card">
+            <span class="material-symbols-outlined text-[80px] text-yellow-500 mb-4" style="font-variation-settings: 'FILL' 1">emoji_events</span>
+            <h1 id="victory-msg" class="text-3xl font-black mb-2 uppercase"></h1>
+            <p class="text-gray-500 mb-8">Trận chiến đã kết thúc với chiến thắng thuộc về người xứng đáng nhất!</p>
+            <button onclick="location.reload()" class="w-full py-4 bg-[#6750A4] text-white rounded-full font-bold shadow-lg hover:brightness-110 active:scale-95 transition-all">
+                CHƠI LẠI VÁN MỚI
+            </button>
+        </div>
+    </div>
+
+    <!-- LEFT SIDEBAR -->
+    <aside id="left-sidebar">
+        <div class="flex flex-col items-center gap-1">
+            <span class="text-[10px] font-black text-gray-400 uppercase tracking-wider">Xúc xắc</span>
+            <div class="dice-container" onclick="userRoll()">
+                <div id="dice-btn" class="dice-box ripple">
+                    <span id="dice-face">⚀</span>
+                    <span id="dice-number"></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex flex-col items-center gap-2">
+            <span class="text-[10px] font-black text-gray-400 uppercase tracking-wider">Auto All</span>
+            <label class="m3-switch">
+                <input type="checkbox" id="auto-switch" onchange="toggleAuto()">
+                <span class="slider">
+                    <span class="thumb">
+                        <span class="material-symbols-outlined text-[14px] icon-dash font-bold">horizontal_rule</span>
+                        <span class="material-symbols-outlined text-[14px] icon-check font-bold">check</span>
+                    </span>
+                </span>
+            </label>
+        </div>
+
+        <button onclick="location.reload()" class="w-14 h-14 rounded-full bg-white border border-gray-100 flex items-center justify-center shadow hover:bg-gray-50 active:scale-[0.9] transition-transform ripple text-gray-600">
+            <span class="material-symbols-outlined">restart_alt</span>
+        </button>
+    </aside>
+
+    <!-- GAME VIEW -->
+    <main id="game-view">
+        <div id="board-container">
+            <div id="board"></div>
+        </div>
+    </main>
+
+    <!-- RIGHT SIDEBAR -->
+    <aside id="right-sidebar">
+        <div class="flex items-center justify-between mb-4 px-2">
+            <h2 class="text-[11px] font-black text-gray-400 uppercase tracking-widest">Trận đấu</h2>
+            <span class="material-symbols-outlined text-gray-300">leaderboard</span>
+        </div>
+        <div id="stats-container" class="flex flex-col gap-4"></div>
+    </aside>
+
+    <script>
+        const PLAYERS = ['green', 'red', 'yellow', 'blue'];
+        const PLAYER_HEX = { green: '#2E6C00', red: '#B3261E', yellow: '#D29100', blue: '#0061A4' };
+        const PLAYER_LIGHT = { green: '#D1E8D1', red: '#FFDAD6', yellow: '#F9EBC8', blue: '#D1E4FF' };
+        const DICE_FACES = ['⚀','⚁','⚂','⚃','⚄','⚅'];
+        const SAFE_POSITIONS = [1, 9, 14, 22, 27, 35, 40, 48]; 
+
+        // BIẾN LƯU TÊN VÀ TRẠNG THÁI BOT TỪ START SCREEN
+        let teamNames = { green: 'GREEN', red: 'RED', yellow: 'YELLOW', blue: 'BLUE' };
+        let isTeamBot = { green: false, red: true, yellow: true, blue: true };
+
+        let state = {
+            turn: 0, dice: 0, hasRolled: false, isAuto: false, isBusy: false,
+            pieces: { green: [0,0,0,0], red: [0,0,0,0], yellow: [0,0,0,0], blue: [0,0,0,0] },
+            finished: { green: 0, red: 0, yellow: 0, blue: 0 }
+        };
+
+        const boardEl = document.getElementById('board');
+        const diceBtn = document.getElementById('dice-btn');
+        const diceFace = document.getElementById('dice-face');
+        const diceNumber = document.getElementById('dice-number');
+        const mainPath = [[6,0],[6,1],[6,2],[6,3],[6,4],[6,5],[5,6],[4,6],[3,6],[2,6],[1,6],[0,6],[0,7],[0,8],[1,8],[2,8],[3,8],[4,8],[5,8],[6,9],[6,10],[6,11],[6,12],[6,13],[6,14],[7,14],[8,14],[8,13],[8,12],[8,11],[8,10],[8,9],[9,8],[10,8],[11,8],[12,8],[13,8],[14,8],[14,7],[14,6],[13,6],[12,6],[11,6],[10,6],[9,6],[8,5],[8,4],[8,3],[8,2],[8,1],[8,0],[7,0]];
+
+        let audioCtx = null;
+
+        const initAudio = () => {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        };
+
+        // --- RIPPLE EFFECT JS ---
+        document.addEventListener('mousedown', function(e) {
+            const target = e.target.closest('.ripple');
+            if (!target) return;
+            const rect = target.getBoundingClientRect();
+            const ripple = document.createElement('span');
+            const size = Math.max(rect.width, rect.height);
+            const x = e.clientX - rect.left - size/2;
+            const y = e.clientY - rect.top - size/2;
+            ripple.style.width = ripple.style.height = `${size}px`;
+            ripple.style.left = `${x}px`;
+            ripple.style.top = `${y}px`;
+            ripple.className = 'ripple-effect absolute bg-white/30 rounded-full scale-0 pointer-events-none';
+            // Để ripple tràn ra ngoài button mà ko bị cắt nếu button ko có overflow hidden
+            if(window.getComputedStyle(target).overflow !== 'hidden'){
+               target.style.overflow = 'hidden'; 
+            }
+            target.appendChild(ripple);
+            ripple.style.animation = 'ripple-anim 0.6s linear';
+            setTimeout(() => ripple.remove(), 600);
+        });
+
+        const playSFX = (type) => {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            if (type === 'tick') {
+                osc.type = 'square'; osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.05, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.05);
+            } else if (type === 'dice') {
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.05, audioCtx.currentTime); gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.1);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+            } else if (type === 'hit') {
+                osc.type = 'triangle'; osc.frequency.setValueAtTime(120, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 0.4);
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime); gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.4);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.4);
+            } else if (type === 'win') {
+                osc.type = 'sine'; osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(1046.50, audioCtx.currentTime + 0.5);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime); gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.5);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.5);
+            }
+        };
+
+        function startGameFromMenu() {
+            initAudio();
+            // Lấy data từ input
+            PLAYERS.forEach(p => {
+                let inputVal = document.getElementById(`name-${p}`).value.trim();
+                teamNames[p] = inputVal !== "" ? inputVal : p.toUpperCase();
+                isTeamBot[p] = document.getElementById(`bot-${p}`).checked;
+            });
+
+            // Gỡ màn hình chờ bằng CSS
+            const startUI = document.getElementById('start-screen');
+            startUI.style.transform = 'translateY(-100%)';
+            setTimeout(() => {
+                startUI.remove();
+                // Kích hoạt render tên mới
+                renderStats();
+                // Check xem Turn 0 có phải là bot không để nó tự đá
+                checkBot();
+            }, 600);
+        }
+
+        function createBoard() {
+            boardEl.innerHTML = '';
+            for (let i = 0; i < 225; i++) {
+                const r = Math.floor(i / 15), c = i % 15;
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                
+                if (r<6 && c<6) cell.style.background = '#FFF8F8';
+                else if (r<6 && c>8) cell.style.background = '#F8FFF8';
+                else if (r>8 && c<6) cell.style.background = '#FFFFF8';
+                else if (r>8 && c>8) cell.style.background = '#F8FAFF';
+
+                if (c === 7 && r > 0 && r < 7) cell.style.background = PLAYER_LIGHT.green;   // 12h
+                if (r === 7 && c > 0 && c < 7) cell.style.background = PLAYER_LIGHT.red;     // 9h
+                if (r === 7 && c > 7 && c < 14) cell.style.background = PLAYER_LIGHT.blue;   // 3h
+                if (c === 7 && r > 7 && r < 14) cell.style.background = PLAYER_LIGHT.yellow; // 6h
+                
+                if (r === 7 && c === 7) cell.innerHTML = '<span class="material-symbols-outlined text-gray-200 text-3xl">pentagon</span>';
+                boardEl.appendChild(cell);
+            }
+            SAFE_POSITIONS.forEach(pos => {
+                const coord = mainPath[pos];
+                boardEl.children[coord[0]*15 + coord[1]].classList.add('safe-zone');
+            });
+        }
+
+        function getCoord(player, pIdx, val) {
+            if (val === 0) {
+                const homes = {
+                    green: [[1,10],[1,13],[4,10],[4,13]], red: [[1,1],[1,4],[4,1],[4,4]],
+                    yellow: [[10,1],[10,4],[13,1],[13,4]], blue: [[10,10],[10,13],[13,10],[13,13]]
+                };
+                return homes[player][pIdx];
+            }
+            const offsets = { red: 0, green: 13, blue: 26, yellow: 39 };
+            if (val > 51) {
+                const step = val - 51;
+                if (player === 'green') return [step, 7];
+                if (player === 'red') return [7, step];
+                if (player === 'blue') return [7, 14 - step];
+                if (player === 'yellow') return [14 - step, 7];
+            }
+            return mainPath[(offsets[player] + val - 1) % 52];
+        }
+
+        function render(highlightMoves = false) {
+            document.querySelectorAll('.piece').forEach(p => p.remove());
+            document.querySelectorAll('.cell').forEach(c => { c.classList.remove('target-hint'); c.classList.remove('path-highlight'); });
+            PLAYERS.forEach(p => {
+                state.pieces[p].forEach((val, i) => {
+                    if (val === 99) return;
+                    const coord = getCoord(p, i, val);
+                    const cell = boardEl.children[coord[0]*15 + coord[1]];
+                    const el = document.createElement('div');
+                    el.className = 'piece';
+                    el.style.backgroundColor = PLAYER_HEX[p];
+                    el.innerText = i + 1;
+                    // Logic active giữ nguyên
+                    if (state.turn === PLAYERS.indexOf(p) && state.hasRolled && !state.isBusy && canMove(p, i)) {
+                        el.classList.add('active');
+                    }
+                    el.onclick = (e) => { e.stopPropagation(); handlePieceClick(p, i); };
+                    cell.appendChild(el);
+                    if (highlightMoves && p === PLAYERS[state.turn] && canMove(p, i)) {
+                        const targetVal = val === 0 ? 1 : val + state.dice;
+                        const tCoord = getCoord(p, i, targetVal);
+                        boardEl.children[tCoord[0]*15 + tCoord[1]].classList.add('target-hint');
+                    }
+                });
+            });
+            renderStats();
+        }
+
+        function handlePieceClick(player, idx) {
+            if (state.turn === PLAYERS.indexOf(player) && state.hasRolled && !state.isBusy && canMove(player, idx)) {
+                executeMove(player, idx);
+            }
+        }
+
+        function renderStats() {
+            const container = document.getElementById('stats-container');
+            container.innerHTML = '';
+            PLAYERS.forEach((p, idx) => {
+                const card = document.createElement('div');
+                card.className = `stat-card ${state.turn === idx ? 'active' : ''}`;
+                // Thay thế phần hiện tên đội bằng biến teamNames
+                card.innerHTML = `
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-[11px] font-black uppercase max-w-[120px] truncate" style="color:${PLAYER_HEX[p]}">${teamNames[p]}</span>
+                        ${state.turn === idx ? '<span class="material-symbols-outlined text-[18px] animate-spin text-gray-500">cached</span>' : ''}
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <div class="flex gap-1">
+                            ${Array(4).fill(0).map((_, i) => `<div class="w-2.5 h-2.5 rounded-full" style="background:${state.finished[p] > i ? PLAYER_HEX[p] : '#eee'}"></div>`).join('')}
+                        </div>
+                        <span class="text-lg font-black" style="color:${PLAYER_HEX[p]}">${state.finished[p]} / 4</span>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        async function rollDice() {
+            if (state.isBusy || state.hasRolled) return;
+            initAudio();
+            state.isBusy = true;
+            diceBtn.classList.remove('show-number');
+            diceBtn.classList.add('animate-bounce');
+            diceNumber.innerText = "";
+            for (let i = 0; i < 10; i++) {
+                diceFace.innerText = DICE_FACES[Math.floor(Math.random()*6)];
+                playSFX('dice');
+                await new Promise(r => setTimeout(r, 60));
+            }
+            state.dice = Math.floor(Math.random() * 6) + 1;
+            diceFace.innerText = DICE_FACES[state.dice - 1];
+            diceBtn.classList.remove('animate-bounce');
+            setTimeout(() => {
+                diceNumber.innerText = state.dice;
+                diceBtn.classList.add('show-number');
+            }, 600);
+            state.hasRolled = true;
+            state.isBusy = false;
+            render(true);
+            const curP = PLAYERS[state.turn];
+            const possibleMoves = state.pieces[curP].filter((_, i) => canMove(curP, i));
+            
+            if (possibleMoves.length === 0) {
+                await new Promise(r => setTimeout(r, 1600));
+                nextTurn();
+            // CHỈNH SỬA DUY NHẤT: Trỏ điều kiện autoPlay sang cái công tắc bot của đội tương ứng
+            } else if (isTeamBot[curP] || state.isAuto) {
+                setTimeout(() => autoPlayMove(), 1200);
+            }
+        }
+
+        function canMove(player, idx) {
+            const val = state.pieces[player][idx];
+            if (val === 99) return false;
+            if (val === 0) return state.dice === 6;
+            const newVal = val + state.dice;
+            if (newVal > 57) return false;
+            const destCoord = getCoord(player, idx, newVal);
+            return !state.pieces[player].some((v, i) => {
+                if (i === idx || v === 0 || v === 99) return false;
+                const c = getCoord(player, i, v);
+                return c[0] === destCoord[0] && c[1] === destCoord[1];
+            });
+        }
+
+        // --- GỘP LOGIC AUTOPLAY (Giữ nguyên thuật toán của bro Phong) ---
+        function autoPlayMove() {
+            const curP = PLAYERS[state.turn];
+            let best = null;
+            let maxScore = -999;
+
+            state.pieces[curP].forEach((val, i) => {
+                if (!canMove(curP, i)) return;
+
+                let score = 0;
+                const newVal = (val === 0) ? 1 : (val + state.dice);
+                const coord = getCoord(curP, i, newVal);
+
+                PLAYERS.forEach(other => {
+                    if (other === curP) return;
+                    state.pieces[other].forEach((v, oIdx) => {
+                        if (v === 0 || v === 99) return;
+                        const oCoord = getCoord(other, oIdx, v);
+                        if (oCoord[0] === coord[0] && oCoord[1] === coord[1]) {
+                            const isSafe = SAFE_POSITIONS.some(p => {
+                                const sc = mainPath[p];
+                                return sc[0] === coord[0] && sc[1] === coord[1];
+                            });
+                            if (!isSafe) score += 1000;
+                        }
+                    });
+                });
+
+                if (val === 0) score += 200; 
+                if (newVal >= 52) score += 500; 
+                score += newVal; 
+
+                if (score > maxScore) {
+                    maxScore = score;
+                    best = i;
+                }
+            });
+
+            if (best !== null) executeMove(curP, best);
+        }
+
+        async function executeMove(player, idx) {
+            state.isBusy = true;
+            const startVal = state.pieces[player][idx];
+            const endVal = (startVal === 0) ? 1 : (startVal + state.dice);
+            for (let v = (startVal === 0 ? 1 : startVal); v <= endVal; v++) {
+                const c = getCoord(player, idx, v);
+                boardEl.children[c[0]*15+c[1]].classList.add('path-highlight');
+            }
+            const pieceEl = document.createElement('div');
+            pieceEl.className = 'piece moving';
+            pieceEl.style.backgroundColor = PLAYER_HEX[player];
+            pieceEl.innerText = idx + 1;
+            boardEl.appendChild(pieceEl);
+            const updatePos = (v) => {
+                const c = getCoord(player, idx, v);
+                const cell = boardEl.children[c[0]*15+c[1]];
+                const r = cell.getBoundingClientRect();
+                const b = boardEl.getBoundingClientRect();
+                pieceEl.style.left = (r.left - b.left) + 'px';
+                pieceEl.style.top = (r.top - b.top) + 'px';
+                pieceEl.style.width = r.width * 0.8 + 'px';
+                pieceEl.style.height = r.height * 0.8 + 'px';
+            };
+            let currentPathVal = (startVal === 0) ? 0 : startVal;
+            if (startVal === 0) { updatePos(0); await new Promise(r => setTimeout(r, 100)); currentPathVal = 1; }
+            for (let v = currentPathVal; v <= endVal; v++) {
+                updatePos(v); playSFX('tick');
+                const progress = (v - currentPathVal) / (endVal - currentPathVal);
+                const delay = 50 + (Math.sin(progress * Math.PI) * -35); 
+                await new Promise(r => setTimeout(r, delay + 80));
+            }
+            pieceEl.remove();
+            const finalCoord = getCoord(player, idx, endVal);
+            let hasHit = false;
+            const isSafePos = SAFE_POSITIONS.some(p => {
+                const sc = mainPath[p];
+                return sc[0] === finalCoord[0] && sc[1] === finalCoord[1];
+            });
+            if (!isSafePos) {
+                PLAYERS.forEach(other => {
+                    if (other === player) return;
+                    state.pieces[other] = state.pieces[other].map((v, oIdx) => {
+                        if (v === 0 || v === 99) return v;
+                        const oCoord = getCoord(other, oIdx, v);
+                        if (oCoord[0] === finalCoord[0] && oCoord[1] === finalCoord[1]) {
+                            hasHit = true; return 0;
+                        }
+                        return v;
+                    });
+                });
+            }
+            if (hasHit) {
+                playSFX('hit');
+                document.body.classList.add('flash-red');
+                boardEl.classList.add('shake');
+                setTimeout(() => { 
+                    document.body.classList.remove('flash-red'); 
+                    boardEl.classList.remove('shake');
+                }, 400);
+            }
+            state.pieces[player][idx] = endVal;
+            if (endVal >= 57) { 
+                state.finished[player]++; 
+                state.pieces[player][idx] = 99; 
+            }
+            if (state.finished[player] === 4) { showVictory(player); return; }
+            state.isBusy = false;
+            if (state.dice !== 6) nextTurn();
+            else { state.hasRolled = false; render(); checkBot(); }
+        }
+
+        function showVictory(player) {
+            state.isBusy = true;
+            const msg = `${teamNames[player]} ĐÃ LÊN ĐỈNH!`;
+            document.getElementById('victory-msg').innerText = msg;
+            document.getElementById('victory-msg').style.color = PLAYER_HEX[player];
+            document.getElementById('victory-overlay').classList.add('visible');
+            playSFX('win');
+        }
+
+        function nextTurn() {
+            state.turn = (state.turn + 1) % 4;
+            state.hasRolled = false;
+            diceBtn.classList.remove('show-number');
+            render();
+            checkBot();
+        }
+
+        function checkBot() {
+            const curP = PLAYERS[state.turn];
+            // CHỈNH SỬA: Check xem team hiện tại có phải là bot được config từ Start Screen không
+            if ((isTeamBot[curP] || state.isAuto) && !state.isBusy) {
+                setTimeout(() => rollDice(), 800);
+            }
+        }
+
+        async function userRoll() { 
+            const curP = PLAYERS[state.turn];
+            // CHỈNH SỬA: Chặn user click nếu team này đang là bot
+            if (!isTeamBot[curP] && !state.isAuto && !state.hasRolled) rollDice(); 
+        }
+
+        function toggleAuto() { 
+            state.isAuto = document.getElementById('auto-switch').checked; 
+            if (state.isAuto) initAudio();
+            checkBot(); 
+        }
+
+        window.onload = () => {
+            createBoard();
+            // KHÔNG RENDER VỘI KHI MỚI LOAD, ĐỢI BẤM PLAY Ở START SCREEN
+            setTimeout(() => document.getElementById('loading-overlay').classList.add('hidden'), 1000);
+        };
+    </script>
+</body>
+</html>
